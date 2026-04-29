@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - SAI</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">SAI Imprenta</div>
+            <ul class="sidebar-menu" id="menuLateral">
+                </ul>
+            <div style="padding: 20px; text-align: center;">
+                <button id="btnCerrarSesion" class="btn-primary" style="background-color: #e74c3c;">Cerrar Sesión</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <h1 id="tituloSeccion">Bienvenido al Sistema</h1>
+            <div id="contenedorVistas">
+                <p>Selecciona un módulo en la barra lateral para comenzar.</p>
+            </div>
+        </main>
+    </div>
+
+    <div id="modalEditar" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>✏️ Editar Usuario</h3>
+            <form id="formEditarUsuario">
+                <input type="hidden" id="editUserId">
+                
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="editUserName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Asignar Rol</label>
+                    <select id="editUserRole" required>
+                        <option value="">Selecciona un rol...</option>
+                        <option value="1">👑 Administrador (Dueño/Gerente)</option>
+                        <option value="2">💼 Ventas / Recepción</option>
+                        <option value="3">⚙️ Producción (Taller)</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn-primary" style="background: #27ae60;">Guardar Cambios</button>
+                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarCualquierModal('modalEditar')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalCrear" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>➕ Nuevo Personal</h3>
+            <form id="formCrearUsuario">
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="crearUserName" placeholder="Ej. Juan Pérez" required>
+                </div>
+                <div class="form-group">
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="crearUserEmail" placeholder="juan@sai.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña Temporal</label>
+                    <input type="password" id="crearUserPass" placeholder="Mínimo 6 caracteres" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Asignar Rol</label>
+                    <select id="crearUserRole" required>
+                        <option value="">Selecciona un rol...</option>
+                        <option value="1">👑 Administrador (Dueño/Gerente)</option>
+                        <option value="2">💼 Ventas / Recepción</option>
+                        <option value="3">⚙️ Producción (Taller)</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn-primary" style="background: #3498db;">Crear Usuario</button>
+                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarCualquierModal('modalCrear')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalPassword" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>🔑 Reiniciar Contraseña</h3>
+            <p style="margin-bottom: 15px; font-size: 14px; color: #7f8c8d;">Ingresa la nueva contraseña provisional para este usuario.</p>
+            <form id="formResetPassword">
+                <input type="hidden" id="resetUserId">
+                
+                <div class="form-group">
+                    <label>Nueva Contraseña</label>
+                    <input type="password" id="resetUserPass" placeholder="Mínimo 6 caracteres" required minlength="6">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn-primary" style="background: #f39c12;">Actualizar Clave</button>
+                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarCualquierModal('modalPassword')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 1. VERIFICAR SEGURIDAD: Si no hay token, lo regresamos al login
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        // 2. FUNCIÓN PARA LEER EL TOKEN Y SABER EL ROL
+        function decodificarToken(token) {
+            try {
+                const payload = token.split('.')[1];
+                return JSON.parse(atob(payload));
+            } catch (e) {
+                return null;
+            }
+        }
+
+        const datosToken = decodificarToken(token);
+        const rolUsuario = datosToken ? datosToken.id_rol : null;
+
+       // 3. CONSTRUIR EL MENÚ SEGÚN EL ROL
+        const menuLateral = document.getElementById('menuLateral');
+        let htmlMenu = '';
+
+        // Transformamos el rol a número por si viene como texto
+        const rolID = parseInt(rolUsuario); 
+
+        // Evaluamos qué menú pintar según el id_rol
+        if (rolID === 1) {
+            // 👑 ROL 1: ADMINISTRADOR (Ve TODO)
+            htmlMenu += `<li><a href="#" onclick="cargarVista('usuarios')">🔐 Usuarios y Seguridad</a></li>`;
+            htmlMenu += `<li><a href="#" onclick="cargarVista('reportes')">📊 Reportes Financieros</a></li>`;
+            htmlMenu += `<li><a href="#" onclick="cargarVista('insumos')">📦 Gestión de Insumos</a></li>`;
+            htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
+            htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
+            htmlMenu += `<li><a href="#" onclick="cargarVista('ordenes')">🖨️ Órdenes de Impresión</a></li>`;
+            htmlMenu += `<li><a href="#" onclick="cargarVista('produccion')">⚙️ Control de Producción</a></li>`;
+            
+        } else if (rolID === 2) {
+            // 💼 ROL 2: VENTAS Y RECEPCIÓN (Atención al cliente y dinero entrante)
+            htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
+            htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
+            htmlMenu += `<li><a href="#" onclick="cargarVista('ordenes')">🖨️ Órdenes de Impresión</a></li>`;
+            
+        } else if (rolID === 3) {
+            // ⚙️ ROL 3: PRODUCCIÓN / TALLER (Solo ven lo que tienen que fabricar)
+            htmlMenu += `<li><a href="#" onclick="cargarVista('ordenes')">🖨️ Órdenes (Vista Taller)</a></li>`;
+            htmlMenu += `<li><a href="#" onclick="cargarVista('produccion')">⚙️ Control de Producción</a></li>`;
+            
+        } else {
+            // Por seguridad, si el rol no coincide con nada, no mostramos menú
+            htmlMenu += `<li><a href="#">⚠️ Rol no reconocido</a></li>`;
+        }
+
+        // Inyectamos el HTML al menú lateral de la pantalla
+        menuLateral.innerHTML = htmlMenu;
+        
+        // 4. FUNCIÓN PARA CARGAR LAS VISTAS
+        async function cargarVista(modulo) {
+            const titulo = document.getElementById('tituloSeccion');
+            const contenedor = document.getElementById('contenedorVistas');
+
+            if (modulo === 'usuarios') {
+                titulo.innerText = '🔐 Gestión de Usuarios y Seguridad';
+                
+                contenedor.innerHTML = `
+                    <div style="margin-bottom: 20px; display: flex; justify-content: space-between;">
+                        <h3>Lista de Personal</h3>
+                        <button class="btn-primary" style="width: auto; padding: 10px 20px;" onclick="mostrarModalUsuario()">+ Nuevo Usuario</button>
+                    </div>
+                    <table border="1" style="width: 100%; border-collapse: collapse; background: white; text-align: left;">
+                        <thead>
+                            <tr style="background: #ecf0f1;">
+                                <th style="padding: 12px;">ID</th>
+                                <th style="padding: 12px;">Nombre</th>
+                                <th style="padding: 12px;">Correo</th>
+                                <th style="padding: 12px;">Rol</th>
+                                <th style="padding: 12px;">Estado</th>
+                                <th style="padding: 12px; text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaUsuariosBody">
+                            <tr><td colspan="6" style="padding: 20px; text-align: center;">Cargando usuarios...</td></tr>
+                        </tbody>
+                    </table>
+                `;
+
+                try {
+                    const res = await fetch('http://localhost:3000/api/usuarios', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+
+                    const tbody = document.getElementById('tablaUsuariosBody');
+                    tbody.innerHTML = ''; 
+
+                    if (data.datos && data.datos.length > 0) {
+                        data.datos.forEach(u => {
+                            tbody.innerHTML += `
+                                <tr style="border-bottom: 1px solid #ddd;">
+                                    <td style="padding: 12px;">${u.id_usuario}</td>
+                                    <td style="padding: 12px;">${u.nombre_completo}</td>
+                                    <td style="padding: 12px;">${u.correo}</td>
+                                    <td style="padding: 12px;"><span style="background: #dbedff; padding: 4px 8px; border-radius: 4px;">${u.rol}</span></td>
+                                    <td style="padding: 12px;">${u.estado}</td>
+                                    <td style="padding: 12px; text-align: center;">
+                                        <button onclick="editarUsuario(${u.id_usuario}, '${u.nombre_completo}')" style="background: #f39c12; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">✏️ Editar</button>
+                                        <button onclick="desactivarUsuario(${u.id_usuario})" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 5px;">🚫 Bajar</button>
+                                        <button onclick="resetearClave(${u.id_usuario})" style="background: #34495e; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 5px;">🔑 Clave</button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay usuarios registrados.</td></tr>';
+                    }
+                } catch (error)  {
+                    console.error(error);
+                    document.getElementById('tablaUsuariosBody').innerHTML = '<tr><td colspan="6" style="color: red; text-align: center;">Error al cargar datos</td></tr>';
+                }
+            } else if (modulo === 'clientes') {
+                titulo.innerText = '👥 Gestión de Clientes';
+                contenedor.innerHTML = '<p>Próximamente: Módulo de Clientes</p>';
+            } else if (modulo === 'insumos') {
+                titulo.innerText = '📦 Gestión de Insumos';
+                contenedor.innerHTML = '<p>Próximamente: Módulo de Inventario e Insumos</p>';
+            }
+        }
+
+        // --- FUNCIONES GLOBALES ---
+        function cerrarCualquierModal(idModal) {
+            document.getElementById(idModal).style.display = 'none';
+        }
+
+        document.getElementById('btnCerrarSesion').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        });
+
+        // --- LÓGICA PARA DESACTIVAR USUARIO ---
+        async function desactivarUsuario(id) {
+            const confirmar = confirm("¿Estás seguro de que deseas desactivar a este usuario? Ya no podrá acceder al sistema.");
+            if (!confirmar) return;
+
+            try {
+                const res = await fetch(`http://localhost:3000/api/usuarios/${id}/estado`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.exito) {
+                    alert("¡Usuario desactivado exitosamente!");
+                    cargarVista('usuarios'); 
+                } else {
+                    alert("Error: " + data.mensaje);
+                }
+            } catch (error) { alert("Error de conexión al servidor"); }
+        }
+
+        // --- LÓGICA PARA CREAR USUARIO ---
+        function mostrarModalUsuario() {
+            document.getElementById('formCrearUsuario').reset();
+            document.getElementById('modalCrear').style.display = 'flex';
+        }
+
+        document.getElementById('formCrearUsuario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('crearUserName').value;
+            const correo = document.getElementById('crearUserEmail').value;
+            const password = document.getElementById('crearUserPass').value;
+            const id_rol = document.getElementById('crearUserRole').value;
+            
+            try {
+                const res = await fetch('http://localhost:3000/api/auth/registro', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ nombre_completo: nombre, correo, password, id_rol })
+                });
+                const data = await res.json();
+                if(data.exito) {
+                    alert("¡Usuario creado exitosamente!");
+                    cerrarCualquierModal('modalCrear');
+                    cargarVista('usuarios');
+                } else { alert("Error: " + data.mensaje); }
+            } catch (e) { alert("Error de conexión"); }
+        });
+
+        // --- LÓGICA PARA EDITAR USUARIO ---
+        function editarUsuario(id, nombreActual) {
+            document.getElementById('editUserId').value = id;
+            document.getElementById('editUserName').value = nombreActual;
+            document.getElementById('editUserRole').value = ""; 
+            document.getElementById('modalEditar').style.display = 'flex';
+        }
+
+        document.getElementById('formEditarUsuario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editUserId').value;
+            const nuevoNombre = document.getElementById('editUserName').value;
+            const nuevoRol = document.getElementById('editUserRole').value;
+
+            try {
+                const res = await fetch(`http://localhost:3000/api/usuarios/${id}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ nombre_completo: nuevoNombre, id_rol: nuevoRol })
+                });
+                const data = await res.json();
+                if (data.exito) {
+                    alert("¡Usuario actualizado con éxito!");
+                    cerrarCualquierModal('modalEditar');
+                    cargarVista('usuarios'); 
+                } else { alert("Error: " + data.mensaje); }
+            } catch (error) { alert("Error de conexión al servidor"); }
+        });
+
+        // --- LÓGICA PARA REINICIAR CONTRASEÑA ---
+        function resetearClave(id) {
+            document.getElementById('formResetPassword').reset();
+            document.getElementById('resetUserId').value = id;
+            document.getElementById('modalPassword').style.display = 'flex';
+        }
+
+        document.getElementById('formResetPassword').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('resetUserId').value;
+            const nuevaClave = document.getElementById('resetUserPass').value;
+            
+            try {
+                const res = await fetch(`http://localhost:3000/api/usuarios/${id}/password`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ nuevaPassword: nuevaClave })
+                });
+                const data = await res.json();
+                if (data.exito) {
+                    alert("¡Contraseña actualizada correctamente!");
+                    cerrarCualquierModal('modalPassword');
+                } else { alert("Error: " + data.mensaje); }
+            } catch (error) { alert("Error de conexión al servidor"); }
+        });
+
+    </script>
+</body>
+</html>

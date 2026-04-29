@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: sai_database
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_123  # Contraseña del usuario root
+      MYSQL_DATABASE: db_sai_imprenta         # Crea la base de datos automáticamente
+      MYSQL_USER: admin_sai                   # Usuario específico para tu app Node
+      MYSQL_PASSWORD: sai_password_123        # Contraseña para tu app
+    ports:
+      - "3306:3306"
+    volumes:
+      - sai_db_data:/var/lib/mysql            # Hace que los datos no se borren si apagas el contenedor
+
+volumes:
+  sai_db_data:
