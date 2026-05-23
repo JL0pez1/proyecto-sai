@@ -4,13 +4,135 @@
     <meta charset="UTF-8">
     <title>Dashboard - SAI</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* ===== ESTILOS ADICIONALES PARA LOS NUEVOS MÓDULOS ===== */
+
+        /* Badges de estado */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-pendiente  { background: #fff3cd; color: #856404; }
+        .badge-aceptada   { background: #d1e7dd; color: #0f5132; }
+        .badge-rechazada  { background: #f8d7da; color: #842029; }
+        .badge-regular    { background: #e2e3e5; color: #383d41; }
+        .badge-frecuente  { background: #cfe2ff; color: #084298; }
+        .badge-preferencial { background: #d1e7dd; color: #0f5132; }
+        .badge-vip        { background: #fff3cd; color: #856404; }
+
+        /* Tabla mejorada */
+        .tabla-sai {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .tabla-sai thead tr {
+            background: #2c3e50;
+            color: white;
+        }
+        .tabla-sai th, .tabla-sai td {
+            padding: 12px 14px;
+            text-align: left;
+            font-size: 14px;
+        }
+        .tabla-sai tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+        }
+        .tabla-sai tbody tr:hover { background: #f8f9fa; }
+
+        /* Barra superior de módulo */
+        .modulo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .modulo-header h3 { margin: 0; font-size: 18px; color: #2c3e50; }
+
+        /* Tarjetas resumen */
+        .cards-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .card-stat {
+            background: white;
+            border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .card-stat .numero { font-size: 28px; font-weight: 700; color: #2c3e50; }
+        .card-stat .etiqueta { font-size: 12px; color: #7f8c8d; margin-top: 4px; }
+
+        /* Botones de acción en tabla */
+        .btn-accion {
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin: 2px;
+            color: white;
+            transition: opacity 0.2s;
+        }
+        .btn-accion:hover { opacity: 0.85; }
+        .btn-edit   { background: #f39c12; }
+        .btn-delete { background: #e74c3c; }
+        .btn-view   { background: #3498db; }
+        .btn-accept { background: #27ae60; }
+        .btn-reject { background: #e74c3c; }
+
+        /* Modal detalle cotización */
+        .detalle-item {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .detalle-item strong { display: block; margin-bottom: 4px; font-size: 14px; }
+        .detalle-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 16px;
+        }
+
+        /* Filtros */
+        .filtros-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .filtros-row input,
+        .filtros-row select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            background: white;
+        }
+
+        /* Loading spinner */
+        .loading { text-align: center; padding: 40px; color: #7f8c8d; }
+    </style>
 </head>
 <body>
     <div class="dashboard-layout">
         <aside class="sidebar">
             <div class="sidebar-header">SAI Imprenta</div>
-            <ul class="sidebar-menu" id="menuLateral">
-                </ul>
+            <ul class="sidebar-menu" id="menuLateral"></ul>
             <div style="padding: 20px; text-align: center;">
                 <button id="btnCerrarSesion" class="btn-primary" style="background-color: #e74c3c;">Cerrar Sesión</button>
             </div>
@@ -24,17 +146,16 @@
         </main>
     </div>
 
+    <!-- ===== MODALES USUARIOS ===== -->
     <div id="modalEditar" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <h3>✏️ Editar Usuario</h3>
             <form id="formEditarUsuario">
                 <input type="hidden" id="editUserId">
-                
                 <div class="form-group">
                     <label>Nombre Completo</label>
                     <input type="text" id="editUserName" required>
                 </div>
-                
                 <div class="form-group">
                     <label>Asignar Rol</label>
                     <select id="editUserRole" required>
@@ -44,10 +165,9 @@
                         <option value="3">⚙️ Producción (Taller)</option>
                     </select>
                 </div>
-                
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn-primary" style="background: #27ae60;">Guardar Cambios</button>
-                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarCualquierModal('modalEditar')">Cancelar</button>
+                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalEditar')">Cancelar</button>
                 </div>
             </form>
         </div>
@@ -57,30 +177,21 @@
         <div class="modal-content">
             <h3>➕ Nuevo Personal</h3>
             <form id="formCrearUsuario">
+                <div class="form-group"><label>Nombre Completo</label><input type="text" id="crearUserName" required></div>
+                <div class="form-group"><label>Correo</label><input type="email" id="crearUserEmail" required></div>
+                <div class="form-group"><label>Contraseña Temporal</label><input type="password" id="crearUserPass" required minlength="6"></div>
                 <div class="form-group">
-                    <label>Nombre Completo</label>
-                    <input type="text" id="crearUserName" placeholder="Ej. Juan Pérez" required>
-                </div>
-                <div class="form-group">
-                    <label>Correo Electrónico</label>
-                    <input type="email" id="crearUserEmail" placeholder="juan@sai.com" required>
-                </div>
-                <div class="form-group">
-                    <label>Contraseña Temporal</label>
-                    <input type="password" id="crearUserPass" placeholder="Mínimo 6 caracteres" required minlength="6">
-                </div>
-                <div class="form-group">
-                    <label>Asignar Rol</label>
+                    <label>Rol</label>
                     <select id="crearUserRole" required>
-                        <option value="">Selecciona un rol...</option>
-                        <option value="1">👑 Administrador (Dueño/Gerente)</option>
+                        <option value="">Selecciona...</option>
+                        <option value="1">👑 Administrador</option>
                         <option value="2">💼 Ventas / Recepción</option>
-                        <option value="3">⚙️ Producción (Taller)</option>
+                        <option value="3">⚙️ Producción</option>
                     </select>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn-primary" style="background: #3498db;">Crear Usuario</button>
-                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarCualquierModal('modalCrear')">Cancelar</button>
+                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalCrear')">Cancelar</button>
                 </div>
             </form>
         </div>
@@ -89,274 +200,747 @@
     <div id="modalPassword" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <h3>🔑 Reiniciar Contraseña</h3>
-            <p style="margin-bottom: 15px; font-size: 14px; color: #7f8c8d;">Ingresa la nueva contraseña provisional para este usuario.</p>
             <form id="formResetPassword">
                 <input type="hidden" id="resetUserId">
-                
-                <div class="form-group">
-                    <label>Nueva Contraseña</label>
-                    <input type="password" id="resetUserPass" placeholder="Mínimo 6 caracteres" required minlength="6">
-                </div>
-                
+                <div class="form-group"><label>Nueva Contraseña</label><input type="password" id="resetUserPass" required minlength="6"></div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn-primary" style="background: #f39c12;">Actualizar Clave</button>
-                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarCualquierModal('modalPassword')">Cancelar</button>
+                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalPassword')">Cancelar</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- ===== MODAL CLIENTE ===== -->
+    <div id="modalCliente" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 560px;">
+            <h3 id="tituloModalCliente">➕ Nuevo Cliente</h3>
+            <form id="formCliente">
+                <input type="hidden" id="clienteId">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group" style="grid-column: 1/-1;">
+                        <label>Nombre Completo *</label>
+                        <input type="text" id="clienteNombre" required placeholder="Ej. Juan García">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="text" id="clienteTelefono" placeholder="5555-1234">
+                    </div>
+                    <div class="form-group">
+                        <label>Correo</label>
+                        <input type="email" id="clienteCorreo" placeholder="juan@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>NIT / DPI</label>
+                        <input type="text" id="clienteNit" placeholder="12345678">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de Cliente</label>
+                        <select id="clienteTipo">
+                            <option value="Regular">Regular</option>
+                            <option value="Frecuente">Frecuente</option>
+                            <option value="Preferencial">Preferencial</option>
+                            <option value="VIP">VIP</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Descuento (%)</label>
+                        <input type="number" id="clienteDescuento" min="0" max="100" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Papel Preferido</label>
+                        <input type="text" id="clientePapel" placeholder="Ej. Bond 75g">
+                    </div>
+                    <div class="form-group" style="grid-column: 1/-1;">
+                        <label>Diseño Frecuente</label>
+                        <textarea id="clienteDiseno" rows="2" placeholder="Describe qué suele imprimir este cliente..." style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn-primary" style="background: #27ae60;" id="btnGuardarCliente">Guardar</button>
+                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalCliente')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL COTIZACIÓN ===== -->
+    <div id="modalCotizacion" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+            <h3>📝 Nueva Cotización</h3>
+            <form id="formCotizacion">
+                <div class="form-group">
+                    <label>Cliente *</label>
+                    <select id="cotCliente" required>
+                        <option value="">Selecciona un cliente...</option>
+                    </select>
+                </div>
+
+                <hr style="margin: 16px 0; border: none; border-top: 1px solid #eee;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <strong>Detalle de trabajos</strong>
+                    <button type="button" onclick="agregarLineaDetalle()" class="btn-primary" style="background:#3498db; width:auto; padding:6px 14px; font-size:13px;">+ Agregar línea</button>
+                </div>
+
+                <div id="contenedorDetalle"></div>
+
+                <div style="text-align:right; margin-top:12px; font-size:16px; color:#2c3e50;">
+                    <strong>Total estimado: Q <span id="totalCotizacion">0.00</span></strong>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn-primary" style="background: #27ae60;">Crear Cotización</button>
+                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalCotizacion')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL VER COTIZACIÓN ===== -->
+    <div id="modalVerCotizacion" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 620px; max-height: 90vh; overflow-y: auto;">
+            <h3>📋 Detalle de Cotización</h3>
+            <div id="contenidoVerCotizacion"></div>
+            <div style="margin-top: 20px;">
+                <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalVerCotizacion')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // 1. VERIFICAR SEGURIDAD: Si no hay token, lo regresamos al login
+        // ===== CONFIGURACIÓN BASE =====
+        const API = 'http://localhost:3000/api';
         const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = 'login.html';
+        if (!token) window.location.href = 'login.html';
+
+        function headers() {
+            return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
         }
 
-        // 2. FUNCIÓN PARA LEER EL TOKEN Y SABER EL ROL
-        function decodificarToken(token) {
-            try {
-                const payload = token.split('.')[1];
-                return JSON.parse(atob(payload));
-            } catch (e) {
-                return null;
-            }
+        function decodificarToken(t) {
+            try { return JSON.parse(atob(t.split('.')[1])); } catch(e) { return null; }
         }
 
         const datosToken = decodificarToken(token);
-        const rolUsuario = datosToken ? datosToken.id_rol : null;
+        const rolID = datosToken ? parseInt(datosToken.id_rol) : null;
 
-       // 3. CONSTRUIR EL MENÚ SEGÚN EL ROL
+        // ===== MENÚ LATERAL =====
         const menuLateral = document.getElementById('menuLateral');
         let htmlMenu = '';
-
-        // Transformamos el rol a número por si viene como texto
-        const rolID = parseInt(rolUsuario); 
-
-        // Evaluamos qué menú pintar según el id_rol
         if (rolID === 1) {
-            // 👑 ROL 1: ADMINISTRADOR (Ve TODO)
             htmlMenu += `<li><a href="#" onclick="cargarVista('usuarios')">🔐 Usuarios y Seguridad</a></li>`;
-            htmlMenu += `<li><a href="#" onclick="cargarVista('reportes')">📊 Reportes Financieros</a></li>`;
-            htmlMenu += `<li><a href="#" onclick="cargarVista('insumos')">📦 Gestión de Insumos</a></li>`;
+           // htmlMenu += `<li><a href="#" onclick="cargarVista('insumos')">📦 Gestión de Insumos</a></li>`;
             htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
             htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
-            htmlMenu += `<li><a href="#" onclick="cargarVista('ordenes')">🖨️ Órdenes de Impresión</a></li>`;
-            htmlMenu += `<li><a href="#" onclick="cargarVista('produccion')">⚙️ Control de Producción</a></li>`;
-            
         } else if (rolID === 2) {
-            // 💼 ROL 2: VENTAS Y RECEPCIÓN (Atención al cliente y dinero entrante)
             htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
             htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
-            htmlMenu += `<li><a href="#" onclick="cargarVista('ordenes')">🖨️ Órdenes de Impresión</a></li>`;
-            
         } else if (rolID === 3) {
-            // ⚙️ ROL 3: PRODUCCIÓN / TALLER (Solo ven lo que tienen que fabricar)
             htmlMenu += `<li><a href="#" onclick="cargarVista('ordenes')">🖨️ Órdenes (Vista Taller)</a></li>`;
-            htmlMenu += `<li><a href="#" onclick="cargarVista('produccion')">⚙️ Control de Producción</a></li>`;
-            
         } else {
-            // Por seguridad, si el rol no coincide con nada, no mostramos menú
             htmlMenu += `<li><a href="#">⚠️ Rol no reconocido</a></li>`;
         }
-
-        // Inyectamos el HTML al menú lateral de la pantalla
         menuLateral.innerHTML = htmlMenu;
-        
-        // 4. FUNCIÓN PARA CARGAR LAS VISTAS
+
+        // ===== HELPER: BADGE ESTADO COTIZACIÓN =====
+        function badgeEstado(estado) {
+            const mapa = { 'Pendiente': 'badge-pendiente', 'Aceptada': 'badge-aceptada', 'Rechazada': 'badge-rechazada' };
+            return `<span class="badge ${mapa[estado] || ''}">${estado}</span>`;
+        }
+
+        // ===== HELPER: BADGE TIPO CLIENTE =====
+        function badgeTipo(tipo) {
+            const mapa = { 'Regular': 'badge-regular', 'Frecuente': 'badge-frecuente', 'Preferencial': 'badge-preferencial', 'VIP': 'badge-vip' };
+            return `<span class="badge ${mapa[tipo] || 'badge-regular'}">${tipo}</span>`;
+        }
+
+        // ===== CERRAR MODAL =====
+        function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
+        // Compatibilidad con nombre anterior
+        function cerrarCualquierModal(id) { cerrarModal(id); }
+
+        // ===== CARGAR VISTA =====
         async function cargarVista(modulo) {
-            const titulo = document.getElementById('tituloSeccion');
+            const titulo    = document.getElementById('tituloSeccion');
             const contenedor = document.getElementById('contenedorVistas');
 
+            // =========== MÓDULO USUARIOS ===========
             if (modulo === 'usuarios') {
                 titulo.innerText = '🔐 Gestión de Usuarios y Seguridad';
-                
                 contenedor.innerHTML = `
-                    <div style="margin-bottom: 20px; display: flex; justify-content: space-between;">
+                    <div class="modulo-header">
                         <h3>Lista de Personal</h3>
-                        <button class="btn-primary" style="width: auto; padding: 10px 20px;" onclick="mostrarModalUsuario()">+ Nuevo Usuario</button>
+                        <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="mostrarModalUsuario()">+ Nuevo Usuario</button>
                     </div>
-                    <table border="1" style="width: 100%; border-collapse: collapse; background: white; text-align: left;">
-                        <thead>
-                            <tr style="background: #ecf0f1;">
-                                <th style="padding: 12px;">ID</th>
-                                <th style="padding: 12px;">Nombre</th>
-                                <th style="padding: 12px;">Correo</th>
-                                <th style="padding: 12px;">Rol</th>
-                                <th style="padding: 12px;">Estado</th>
-                                <th style="padding: 12px; text-align: center;">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaUsuariosBody">
-                            <tr><td colspan="6" style="padding: 20px; text-align: center;">Cargando usuarios...</td></tr>
-                        </tbody>
-                    </table>
-                `;
-
+                    <table class="tabla-sai">
+                        <thead><tr>
+                            <th>ID</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th style="text-align:center;">Acciones</th>
+                        </tr></thead>
+                        <tbody id="tablaUsuariosBody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+                    </table>`;
                 try {
-                    const res = await fetch('http://localhost:3000/api/usuarios', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const res = await fetch(`${API}/usuarios`, { headers: headers() });
                     const data = await res.json();
-
                     const tbody = document.getElementById('tablaUsuariosBody');
-                    tbody.innerHTML = ''; 
-
+                    tbody.innerHTML = '';
                     if (data.datos && data.datos.length > 0) {
                         data.datos.forEach(u => {
-                            tbody.innerHTML += `
-                                <tr style="border-bottom: 1px solid #ddd;">
-                                    <td style="padding: 12px;">${u.id_usuario}</td>
-                                    <td style="padding: 12px;">${u.nombre_completo}</td>
-                                    <td style="padding: 12px;">${u.correo}</td>
-                                    <td style="padding: 12px;"><span style="background: #dbedff; padding: 4px 8px; border-radius: 4px;">${u.rol}</span></td>
-                                    <td style="padding: 12px;">${u.estado}</td>
-                                    <td style="padding: 12px; text-align: center;">
-                                        <button onclick="editarUsuario(${u.id_usuario}, '${u.nombre_completo}')" style="background: #f39c12; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">✏️ Editar</button>
-                                        <button onclick="desactivarUsuario(${u.id_usuario})" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 5px;">🚫 Bajar</button>
-                                        <button onclick="resetearClave(${u.id_usuario})" style="background: #34495e; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 5px;">🔑 Clave</button>
-                                    </td>
-                                </tr>
-                            `;
+                            tbody.innerHTML += `<tr>
+                                <td>${u.id_usuario}</td>
+                                <td>${u.nombre_completo}</td>
+                                <td>${u.correo}</td>
+                                <td><span class="badge badge-frecuente">${u.rol || 'Sin rol'}</span></td>
+                                <td>${u.estado}</td>
+                                <td style="text-align:center;">
+                                    <button class="btn-accion btn-edit" onclick="editarUsuario(${u.id_usuario},'${u.nombre_completo}')">✏️ Editar</button>
+                                    <button class="btn-accion btn-delete" onclick="desactivarUsuario(${u.id_usuario})">🚫 Bajar</button>
+                                    <button class="btn-accion" style="background:#34495e;" onclick="resetearClave(${u.id_usuario})">🔑 Clave</button>
+                                </td>
+                            </tr>`;
                         });
                     } else {
-                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay usuarios registrados.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay usuarios registrados.</td></tr>';
                     }
-                } catch (error)  {
-                    console.error(error);
-                    document.getElementById('tablaUsuariosBody').innerHTML = '<tr><td colspan="6" style="color: red; text-align: center;">Error al cargar datos</td></tr>';
+                } catch(e) {
+                    document.getElementById('tablaUsuariosBody').innerHTML = '<tr><td colspan="6" style="color:red;text-align:center;">Error al cargar datos</td></tr>';
                 }
+
+            // =========== MÓDULO CLIENTES ===========
             } else if (modulo === 'clientes') {
                 titulo.innerText = '👥 Gestión de Clientes';
-                contenedor.innerHTML = '<p>Próximamente: Módulo de Clientes</p>';
+                contenedor.innerHTML = `
+                    <div class="modulo-header">
+                        <h3>Lista de Clientes</h3>
+                        <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCliente()">+ Nuevo Cliente</button>
+                    </div>
+                    <div class="filtros-row">
+                        <input type="text" id="filtroCliente" placeholder="🔍 Buscar por nombre o NIT..." oninput="filtrarClientes()" style="flex:1; min-width:200px;">
+                        <select id="filtroTipoCliente" onchange="filtrarClientes()">
+                            <option value="">Todos los tipos</option>
+                            <option value="Regular">Regular</option>
+                            <option value="Frecuente">Frecuente</option>
+                            <option value="Preferencial">Preferencial</option>
+                            <option value="VIP">VIP</option>
+                        </select>
+                    </div>
+                    <div class="cards-row" id="statsClientes"></div>
+                    <table class="tabla-sai">
+                        <thead><tr>
+                            <th>ID</th><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>NIT/DPI</th><th>Tipo</th><th>Descuento</th><th style="text-align:center;">Acciones</th>
+                        </tr></thead>
+                        <tbody id="tablaClientesBody"><tr><td colspan="8" class="loading">Cargando clientes...</td></tr></tbody>
+                    </table>`;
+
+                await cargarClientes();
+
+            // =========== MÓDULO COTIZACIONES ===========
+            } else if (modulo === 'cotizaciones') {
+                titulo.innerText = '📝 Gestión de Cotizaciones';
+                contenedor.innerHTML = `
+                    <div class="modulo-header">
+                        <h3>Lista de Cotizaciones</h3>
+                        <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCotizacion()">+ Nueva Cotización</button>
+                    </div>
+                    <div class="filtros-row">
+                        <input type="text" id="filtroCotizacion" placeholder="🔍 Buscar por cliente..." oninput="filtrarCotizaciones()" style="flex:1; min-width:200px;">
+                        <select id="filtroEstadoCot" onchange="filtrarCotizaciones()">
+                            <option value="">Todos los estados</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Aceptada">Aceptada</option>
+                            <option value="Rechazada">Rechazada</option>
+                        </select>
+                    </div>
+                    <div class="cards-row" id="statsCotizaciones"></div>
+                    <table class="tabla-sai">
+                        <thead><tr>
+                            <th>ID</th><th>Cliente</th><th>Fecha</th><th>Estado</th><th>Total</th><th>Creada por</th><th style="text-align:center;">Acciones</th>
+                        </tr></thead>
+                        <tbody id="tablaCotizacionesBody"><tr><td colspan="7" class="loading">Cargando cotizaciones...</td></tr></tbody>
+                    </table>`;
+
+                await cargarCotizaciones();
+
             } else if (modulo === 'insumos') {
                 titulo.innerText = '📦 Gestión de Insumos';
                 contenedor.innerHTML = '<p>Próximamente: Módulo de Inventario e Insumos</p>';
+            } else {
+                titulo.innerText = 'Módulo no disponible';
+                contenedor.innerHTML = '<p>Este módulo está en desarrollo.</p>';
             }
         }
 
-        // --- FUNCIONES GLOBALES ---
-        function cerrarCualquierModal(idModal) {
-            document.getElementById(idModal).style.display = 'none';
+        // ======================================================
+        //  CLIENTES
+        // ======================================================
+        let todosLosClientes = [];
+
+        async function cargarClientes() {
+            try {
+                const res = await fetch(`${API}/clientes`, { headers: headers() });
+                const data = await res.json();
+                todosLosClientes = data.datos || [];
+                renderizarClientes(todosLosClientes);
+
+                // Stats
+                const total = todosLosClientes.length;
+                const vip   = todosLosClientes.filter(c => c.tipo_cliente === 'VIP').length;
+                const pref  = todosLosClientes.filter(c => c.tipo_cliente === 'Preferencial').length;
+                const frec  = todosLosClientes.filter(c => c.tipo_cliente === 'Frecuente').length;
+                const statsEl = document.getElementById('statsClientes');
+                if (statsEl) statsEl.innerHTML = `
+                    <div class="card-stat"><div class="numero">${total}</div><div class="etiqueta">Total clientes</div></div>
+                    <div class="card-stat"><div class="numero" style="color:#856404;">${vip}</div><div class="etiqueta">VIP</div></div>
+                    <div class="card-stat"><div class="numero" style="color:#0f5132;">${pref}</div><div class="etiqueta">Preferenciales</div></div>
+                    <div class="card-stat"><div class="numero" style="color:#084298;">${frec}</div><div class="etiqueta">Frecuentes</div></div>
+                `;
+            } catch(e) {
+                const tbody = document.getElementById('tablaClientesBody');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="color:red;text-align:center;">Error al cargar clientes</td></tr>';
+            }
         }
 
-        document.getElementById('btnCerrarSesion').addEventListener('click', () => {
-            localStorage.removeItem('token');
-            window.location.href = 'login.html';
+        function renderizarClientes(lista) {
+            const tbody = document.getElementById('tablaClientesBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!lista.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="loading">No hay clientes registrados.</td></tr>';
+                return;
+            }
+            lista.forEach(c => {
+                tbody.innerHTML += `<tr>
+                    <td>${c.id_cliente}</td>
+                    <td><strong>${c.nombre}</strong></td>
+                    <td>${c.telefono || '—'}</td>
+                    <td>${c.correo || '—'}</td>
+                    <td>${c.nit_dpi || '—'}</td>
+                    <td>${badgeTipo(c.tipo_cliente)}</td>
+                    <td>${c.descuento_porcentaje > 0 ? c.descuento_porcentaje + '%' : '—'}</td>
+                    <td style="text-align:center;">
+                        <button class="btn-accion btn-edit" onclick="editarCliente(${c.id_cliente})">✏️ Editar</button>
+                        <button class="btn-accion btn-delete" onclick="eliminarCliente(${c.id_cliente}, '${c.nombre.replace(/'/g,"\\'")}')">🗑️ Eliminar</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        function filtrarClientes() {
+            const texto = (document.getElementById('filtroCliente')?.value || '').toLowerCase();
+            const tipo  = document.getElementById('filtroTipoCliente')?.value || '';
+            const filtrados = todosLosClientes.filter(c => {
+                const coincideTexto = !texto ||
+                    c.nombre.toLowerCase().includes(texto) ||
+                    (c.nit_dpi && c.nit_dpi.includes(texto));
+                const coincideTipo = !tipo || c.tipo_cliente === tipo;
+                return coincideTexto && coincideTipo;
+            });
+            renderizarClientes(filtrados);
+        }
+
+        function abrirModalCliente(cliente = null) {
+            document.getElementById('formCliente').reset();
+            document.getElementById('clienteId').value = '';
+            document.getElementById('tituloModalCliente').innerText = '➕ Nuevo Cliente';
+            document.getElementById('btnGuardarCliente').innerText = 'Guardar';
+            if (cliente) {
+                document.getElementById('tituloModalCliente').innerText = '✏️ Editar Cliente';
+                document.getElementById('clienteId').value    = cliente.id_cliente;
+                document.getElementById('clienteNombre').value = cliente.nombre;
+                document.getElementById('clienteTelefono').value = cliente.telefono || '';
+                document.getElementById('clienteCorreo').value   = cliente.correo || '';
+                document.getElementById('clienteNit').value      = cliente.nit_dpi || '';
+                document.getElementById('clienteTipo').value     = cliente.tipo_cliente || 'Regular';
+                document.getElementById('clienteDescuento').value = cliente.descuento_porcentaje || 0;
+                document.getElementById('clientePapel').value    = cliente.tipo_papel_preferido || '';
+                document.getElementById('clienteDiseno').value   = cliente.diseno_frecuente || '';
+            }
+            document.getElementById('modalCliente').style.display = 'flex';
+        }
+
+        async function editarCliente(id) {
+            try {
+                const res = await fetch(`${API}/clientes/${id}`, { headers: headers() });
+                const data = await res.json();
+                if (data.exito) abrirModalCliente(data.datos);
+                else alert('No se pudo cargar el cliente');
+            } catch(e) { alert('Error de conexión'); }
+        }
+
+        async function eliminarCliente(id, nombre) {
+            if (!confirm(`¿Eliminar al cliente "${nombre}"? Esta acción no se puede deshacer.`)) return;
+            try {
+                const res = await fetch(`${API}/clientes/${id}`, { method: 'DELETE', headers: headers() });
+                const data = await res.json();
+                if (data.exito) { alert('Cliente eliminado'); cargarClientes(); }
+                else alert('Error: ' + data.mensaje);
+            } catch(e) { alert('Error de conexión'); }
+        }
+
+        document.getElementById('formCliente').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('clienteId').value;
+            const body = {
+                nombre:               document.getElementById('clienteNombre').value,
+                telefono:             document.getElementById('clienteTelefono').value,
+                correo:               document.getElementById('clienteCorreo').value,
+                nit_dpi:              document.getElementById('clienteNit').value,
+                tipo_cliente:         document.getElementById('clienteTipo').value,
+                descuento_porcentaje: parseFloat(document.getElementById('clienteDescuento').value) || 0,
+                tipo_papel_preferido: document.getElementById('clientePapel').value,
+                diseno_frecuente:     document.getElementById('clienteDiseno').value,
+            };
+            try {
+                const url    = id ? `${API}/clientes/${id}` : `${API}/clientes`;
+                const method = id ? 'PUT' : 'POST';
+                const res    = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
+                const data   = await res.json();
+                if (data.exito) {
+                    alert(id ? '¡Cliente actualizado!' : '¡Cliente registrado!');
+                    cerrarModal('modalCliente');
+                    cargarClientes();
+                } else { alert('Error: ' + data.mensaje); }
+            } catch(e) { alert('Error de conexión'); }
         });
 
-        // --- LÓGICA PARA DESACTIVAR USUARIO ---
-        async function desactivarUsuario(id) {
-            const confirmar = confirm("¿Estás seguro de que deseas desactivar a este usuario? Ya no podrá acceder al sistema.");
-            if (!confirmar) return;
+        // ======================================================
+        //  COTIZACIONES
+        // ======================================================
+        let todasLasCotizaciones = [];
+        let contadorLineas = 0;
+
+        async function cargarCotizaciones() {
+            try {
+                const res = await fetch(`${API}/cotizaciones`, { headers: headers() });
+                const data = await res.json();
+                todasLasCotizaciones = data.datos || [];
+                renderizarCotizaciones(todasLasCotizaciones);
+
+                // Stats
+                const total     = todasLasCotizaciones.length;
+                const pendientes = todasLasCotizaciones.filter(c => c.estado === 'Pendiente').length;
+                const aceptadas  = todasLasCotizaciones.filter(c => c.estado === 'Aceptada').length;
+                const rechazadas = todasLasCotizaciones.filter(c => c.estado === 'Rechazada').length;
+                const totalQ     = todasLasCotizaciones.reduce((s, c) => s + parseFloat(c.total || 0), 0);
+                const statsEl    = document.getElementById('statsCotizaciones');
+                if (statsEl) statsEl.innerHTML = `
+                    <div class="card-stat"><div class="numero">${total}</div><div class="etiqueta">Total</div></div>
+                    <div class="card-stat"><div class="numero" style="color:#856404;">${pendientes}</div><div class="etiqueta">Pendientes</div></div>
+                    <div class="card-stat"><div class="numero" style="color:#0f5132;">${aceptadas}</div><div class="etiqueta">Aceptadas</div></div>
+                    <div class="card-stat"><div class="numero" style="color:#842029;">${rechazadas}</div><div class="etiqueta">Rechazadas</div></div>
+                    <div class="card-stat"><div class="numero" style="color:#1a5276; font-size:20px;">Q${totalQ.toFixed(2)}</div><div class="etiqueta">Valor total</div></div>
+                `;
+            } catch(e) {
+                const tbody = document.getElementById('tablaCotizacionesBody');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="color:red;text-align:center;">Error al cargar cotizaciones</td></tr>';
+            }
+        }
+
+        function renderizarCotizaciones(lista) {
+            const tbody = document.getElementById('tablaCotizacionesBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!lista.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">No hay cotizaciones registradas.</td></tr>';
+                return;
+            }
+            lista.forEach(c => {
+                const fecha = new Date(c.fecha_emision).toLocaleDateString('es-GT');
+                const esPendiente = c.estado === 'Pendiente';
+                tbody.innerHTML += `<tr>
+                    <td><strong>#${c.id_cotizacion}</strong></td>
+                    <td>${c.nombre_cliente || '—'}</td>
+                    <td>${fecha}</td>
+                    <td>${badgeEstado(c.estado)}</td>
+                    <td><strong>Q ${parseFloat(c.total).toFixed(2)}</strong></td>
+                    <td>${c.nombre_usuario || '—'}</td>
+                    <td style="text-align:center;">
+                        <button class="btn-accion btn-view" onclick="verCotizacion(${c.id_cotizacion})">👁 Ver</button>
+                        ${esPendiente ? `
+                        <button class="btn-accion btn-accept" onclick="cambiarEstadoCot(${c.id_cotizacion},'Aceptada')">✅ Aceptar</button>
+                        <button class="btn-accion btn-reject" onclick="cambiarEstadoCot(${c.id_cotizacion},'Rechazada')">❌ Rechazar</button>
+                        ` : ''}
+                        <button class="btn-accion btn-delete" onclick="eliminarCotizacion(${c.id_cotizacion})">🗑️</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        function filtrarCotizaciones() {
+            const texto  = (document.getElementById('filtroCotizacion')?.value || '').toLowerCase();
+            const estado = document.getElementById('filtroEstadoCot')?.value || '';
+            const filtradas = todasLasCotizaciones.filter(c => {
+                const coincideTexto  = !texto  || (c.nombre_cliente && c.nombre_cliente.toLowerCase().includes(texto));
+                const coincideEstado = !estado || c.estado === estado;
+                return coincideTexto && coincideEstado;
+            });
+            renderizarCotizaciones(filtradas);
+        }
+
+        async function verCotizacion(id) {
+            try {
+                const res  = await fetch(`${API}/cotizaciones/${id}`, { headers: headers() });
+                const data = await res.json();
+                if (!data.exito) { alert('No se pudo cargar la cotización'); return; }
+                const c    = data.datos;
+                const fecha = new Date(c.fecha_emision).toLocaleDateString('es-GT');
+                let detalleHTML = '';
+                if (c.detalle && c.detalle.length) {
+                    c.detalle.forEach((d, i) => {
+                        detalleHTML += `
+                        <div class="detalle-item">
+                            <strong>Línea ${i+1}: ${d.tipo_trabajo}</strong>
+                            <div class="detalle-grid">
+                                <span>Cantidad: <b>${d.cantidad}</b></span>
+                                <span>Tamaño: <b>${d.tamano || '—'}</b></span>
+                                <span>Papel: <b>${d.nombre_papel || '—'}</b></span>
+                                <span>Acabado: <b>${d.nombre_acabado || '—'}</b></span>
+                                <span>Tinta est.: <b>${d.consumo_estimado_tinta || '—'}</b></span>
+                                <span>T. máquina: <b>${d.tiempo_estimado_maquina ? d.tiempo_estimado_maquina + ' min' : '—'}</b></span>
+                            </div>
+                            <div style="text-align:right; margin-top:6px; font-weight:700; color:#27ae60;">Subtotal: Q ${parseFloat(d.subtotal).toFixed(2)}</div>
+                        </div>`;
+                    });
+                } else {
+                    detalleHTML = '<p style="color:#7f8c8d;">Sin detalle registrado.</p>';
+                }
+                document.getElementById('contenidoVerCotizacion').innerHTML = `
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; font-size:14px;">
+                        <div><b>Cliente:</b> ${c.nombre_cliente || '—'}</div>
+                        <div><b>Fecha:</b> ${fecha}</div>
+                        <div><b>Estado:</b> ${badgeEstado(c.estado)}</div>
+                        <div><b>Creada por:</b> ${c.nombre_usuario || '—'}</div>
+                        <div><b>Tipo cliente:</b> ${badgeTipo(c.tipo_cliente || 'Regular')}</div>
+                        <div><b>Descuento:</b> ${c.descuento_porcentaje || 0}%</div>
+                    </div>
+                    <hr style="border:none; border-top:1px solid #eee; margin-bottom:12px;">
+                    <strong style="display:block; margin-bottom:10px;">Detalle de trabajos:</strong>
+                    ${detalleHTML}
+                    <div style="text-align:right; margin-top:14px; font-size:18px; font-weight:700; color:#2c3e50;">
+                        TOTAL: Q ${parseFloat(c.total).toFixed(2)}
+                    </div>
+                `;
+                document.getElementById('modalVerCotizacion').style.display = 'flex';
+            } catch(e) { alert('Error de conexión'); }
+        }
+
+        async function cambiarEstadoCot(id, estado) {
+            if (!confirm(`¿Marcar esta cotización como "${estado}"?`)) return;
+            try {
+                const res  = await fetch(`${API}/cotizaciones/${id}/estado`, {
+                    method: 'PATCH',
+                    headers: headers(),
+                    body: JSON.stringify({ estado })
+                });
+                const data = await res.json();
+                if (data.exito) { cargarCotizaciones(); }
+                else alert('Error: ' + data.mensaje);
+            } catch(e) { alert('Error de conexión'); }
+        }
+
+        async function eliminarCotizacion(id) {
+            if (!confirm(`¿Eliminar la cotización #${id}? Esta acción no se puede deshacer.`)) return;
+            try {
+                const res  = await fetch(`${API}/cotizaciones/${id}`, { method: 'DELETE', headers: headers() });
+                const data = await res.json();
+                if (data.exito) cargarCotizaciones();
+                else alert('Error: ' + data.mensaje);
+            } catch(e) { alert('Error de conexión'); }
+        }
+
+        // ---- MODAL NUEVA COTIZACIÓN ----
+        async function abrirModalCotizacion() {
+            // Cargar lista de clientes en el select
+            try {
+                const res  = await fetch(`${API}/clientes`, { headers: headers() });
+                const data = await res.json();
+                const sel  = document.getElementById('cotCliente');
+                sel.innerHTML = '<option value="">Selecciona un cliente...</option>';
+                (data.datos || []).forEach(c => {
+                    sel.innerHTML += `<option value="${c.id_cliente}">${c.nombre} (${c.tipo_cliente})</option>`;
+                });
+            } catch(e) {}
+
+            // Limpiar detalle
+            contadorLineas = 0;
+            document.getElementById('contenedorDetalle').innerHTML = '';
+            document.getElementById('totalCotizacion').innerText = '0.00';
+            agregarLineaDetalle(); // Empezar con 1 línea vacía
+            document.getElementById('modalCotizacion').style.display = 'flex';
+        }
+
+        function agregarLineaDetalle() {
+            contadorLineas++;
+            const id = contadorLineas;
+            const div = document.createElement('div');
+            div.id = `linea-${id}`;
+            div.style.cssText = 'background:#f8f9fa; border-radius:8px; padding:14px; margin-bottom:10px; position:relative;';
+            div.innerHTML = `
+                <button type="button" onclick="eliminarLinea(${id})" style="position:absolute;top:8px;right:8px;background:#e74c3c;color:white;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;">×</button>
+                <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:10px;">
+                    <div class="form-group" style="margin:0;">
+                        <label style="font-size:12px;">Tipo de trabajo *</label>
+                        <input type="text" id="tt-${id}" placeholder="Ej. Impresión full color" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label style="font-size:12px;">Cantidad *</label>
+                        <input type="number" id="cant-${id}" min="1" value="1" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;" oninput="recalcularTotal()">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label style="font-size:12px;">Tamaño</label>
+                        <input type="text" id="tam-${id}" placeholder="Ej. Carta" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label style="font-size:12px;">Consumo tinta</label>
+                        <input type="text" id="tinta-${id}" placeholder="Ej. 200ml" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label style="font-size:12px;">Tiempo máquina (min)</label>
+                        <input type="number" id="tiem-${id}" min="0" placeholder="Ej. 60" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label style="font-size:12px;">Subtotal (Q) *</label>
+                        <input type="number" id="sub-${id}" min="0" step="0.01" placeholder="0.00" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;" oninput="recalcularTotal()" required>
+                    </div>
+                </div>
+            `;
+            document.getElementById('contenedorDetalle').appendChild(div);
+        }
+
+        function eliminarLinea(id) {
+            const el = document.getElementById(`linea-${id}`);
+            if (el) el.remove();
+            recalcularTotal();
+        }
+
+        function recalcularTotal() {
+            let total = 0;
+            document.querySelectorAll('[id^="sub-"]').forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            const el = document.getElementById('totalCotizacion');
+            if (el) el.innerText = total.toFixed(2);
+        }
+
+        document.getElementById('formCotizacion').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id_cliente = document.getElementById('cotCliente').value;
+            if (!id_cliente) { alert('Selecciona un cliente'); return; }
+
+            // Recolectar detalle
+            const lineas = document.querySelectorAll('[id^="linea-"]');
+            const detalle = [];
+            let valido = true;
+            lineas.forEach(linea => {
+                const lineaId = linea.id.split('-')[1];
+                const tipo_trabajo = document.getElementById(`tt-${lineaId}`)?.value;
+                const cantidad     = parseInt(document.getElementById(`cant-${lineaId}`)?.value) || 0;
+                const tamano       = document.getElementById(`tam-${lineaId}`)?.value;
+                const consumo_estimado_tinta   = document.getElementById(`tinta-${lineaId}`)?.value;
+                const tiempo_estimado_maquina  = parseInt(document.getElementById(`tiem-${lineaId}`)?.value) || null;
+                const subtotal     = parseFloat(document.getElementById(`sub-${lineaId}`)?.value) || 0;
+                if (!tipo_trabajo || cantidad < 1 || subtotal <= 0) { valido = false; return; }
+                detalle.push({ tipo_trabajo, cantidad, tamano, consumo_estimado_tinta, tiempo_estimado_maquina, subtotal });
+            });
+
+            if (!valido || detalle.length === 0) {
+                alert('Por favor completa todos los campos obligatorios en el detalle (tipo de trabajo, cantidad y subtotal).');
+                return;
+            }
 
             try {
-                const res = await fetch(`http://localhost:3000/api/usuarios/${id}/estado`, {
-                    method: 'PATCH',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                const res  = await fetch(`${API}/cotizaciones`, {
+                    method: 'POST',
+                    headers: headers(),
+                    body: JSON.stringify({ id_cliente, detalle })
                 });
                 const data = await res.json();
                 if (data.exito) {
-                    alert("¡Usuario desactivado exitosamente!");
-                    cargarVista('usuarios'); 
-                } else {
-                    alert("Error: " + data.mensaje);
-                }
-            } catch (error) { alert("Error de conexión al servidor"); }
-        }
+                    alert(`¡Cotización #${data.id_cotizacion} creada correctamente!`);
+                    cerrarModal('modalCotizacion');
+                    cargarCotizaciones();
+                } else { alert('Error: ' + data.mensaje); }
+            } catch(e) { alert('Error de conexión al servidor'); }
+        });
 
-        // --- LÓGICA PARA CREAR USUARIO ---
+        // ======================================================
+        //  USUARIOS (funciones existentes)
+        // ======================================================
         function mostrarModalUsuario() {
             document.getElementById('formCrearUsuario').reset();
             document.getElementById('modalCrear').style.display = 'flex';
         }
 
-        document.getElementById('formCrearUsuario').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const nombre = document.getElementById('crearUserName').value;
-            const correo = document.getElementById('crearUserEmail').value;
-            const password = document.getElementById('crearUserPass').value;
-            const id_rol = document.getElementById('crearUserRole').value;
-            
-            try {
-                const res = await fetch('http://localhost:3000/api/auth/registro', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` 
-                    },
-                    body: JSON.stringify({ nombre_completo: nombre, correo, password, id_rol })
-                });
-                const data = await res.json();
-                if(data.exito) {
-                    alert("¡Usuario creado exitosamente!");
-                    cerrarCualquierModal('modalCrear');
-                    cargarVista('usuarios');
-                } else { alert("Error: " + data.mensaje); }
-            } catch (e) { alert("Error de conexión"); }
-        });
-
-        // --- LÓGICA PARA EDITAR USUARIO ---
         function editarUsuario(id, nombreActual) {
             document.getElementById('editUserId').value = id;
             document.getElementById('editUserName').value = nombreActual;
-            document.getElementById('editUserRole').value = ""; 
+            document.getElementById('editUserRole').value = '';
             document.getElementById('modalEditar').style.display = 'flex';
         }
 
-        document.getElementById('formEditarUsuario').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('editUserId').value;
-            const nuevoNombre = document.getElementById('editUserName').value;
-            const nuevoRol = document.getElementById('editUserRole').value;
-
-            try {
-                const res = await fetch(`http://localhost:3000/api/usuarios/${id}`, {
-                    method: 'PUT',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` 
-                    },
-                    body: JSON.stringify({ nombre_completo: nuevoNombre, id_rol: nuevoRol })
-                });
-                const data = await res.json();
-                if (data.exito) {
-                    alert("¡Usuario actualizado con éxito!");
-                    cerrarCualquierModal('modalEditar');
-                    cargarVista('usuarios'); 
-                } else { alert("Error: " + data.mensaje); }
-            } catch (error) { alert("Error de conexión al servidor"); }
-        });
-
-        // --- LÓGICA PARA REINICIAR CONTRASEÑA ---
         function resetearClave(id) {
             document.getElementById('formResetPassword').reset();
             document.getElementById('resetUserId').value = id;
             document.getElementById('modalPassword').style.display = 'flex';
         }
 
+        async function desactivarUsuario(id) {
+            if (!confirm('¿Desactivar a este usuario?')) return;
+            try {
+                const res = await fetch(`${API}/usuarios/${id}/estado`, { method: 'PATCH', headers: headers() });
+                const data = await res.json();
+                if (data.exito) { alert('Usuario desactivado'); cargarVista('usuarios'); }
+                else alert('Error: ' + data.mensaje);
+            } catch(e) { alert('Error de conexión'); }
+        }
+
+        document.getElementById('formCrearUsuario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const body = {
+                nombre_completo: document.getElementById('crearUserName').value,
+                correo:    document.getElementById('crearUserEmail').value,
+                password:  document.getElementById('crearUserPass').value,
+                id_rol:    document.getElementById('crearUserRole').value
+            };
+            try {
+                const res  = await fetch(`${API}/auth/registro`, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+                const data = await res.json();
+                if (data.exito) { alert('¡Usuario creado!'); cerrarModal('modalCrear'); cargarVista('usuarios'); }
+                else alert('Error: ' + data.mensaje);
+            } catch(e) { alert('Error de conexión'); }
+        });
+
+        document.getElementById('formEditarUsuario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editUserId').value;
+            const body = {
+                nombre_completo: document.getElementById('editUserName').value,
+                id_rol: document.getElementById('editUserRole').value
+            };
+            try {
+                const res  = await fetch(`${API}/usuarios/${id}`, { method: 'PUT', headers: headers(), body: JSON.stringify(body) });
+                const data = await res.json();
+                if (data.exito) { alert('¡Usuario actualizado!'); cerrarModal('modalEditar'); cargarVista('usuarios'); }
+                else alert('Error: ' + data.mensaje);
+            } catch(e) { alert('Error de conexión'); }
+        });
+
         document.getElementById('formResetPassword').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('resetUserId').value;
-            const nuevaClave = document.getElementById('resetUserPass').value;
-            
+            const body = { nuevaPassword: document.getElementById('resetUserPass').value };
             try {
-                const res = await fetch(`http://localhost:3000/api/usuarios/${id}/password`, {
-                    method: 'PATCH',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` 
-                    },
-                    body: JSON.stringify({ nuevaPassword: nuevaClave })
-                });
+                const res  = await fetch(`${API}/usuarios/${id}/password`, { method: 'PATCH', headers: headers(), body: JSON.stringify(body) });
                 const data = await res.json();
-                if (data.exito) {
-                    alert("¡Contraseña actualizada correctamente!");
-                    cerrarCualquierModal('modalPassword');
-                } else { alert("Error: " + data.mensaje); }
-            } catch (error) { alert("Error de conexión al servidor"); }
+                if (data.exito) { alert('¡Contraseña actualizada!'); cerrarModal('modalPassword'); }
+                else alert('Error: ' + data.mensaje);
+            } catch(e) { alert('Error de conexión'); }
         });
 
+        // Cerrar sesión
+        document.getElementById('btnCerrarSesion').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        });
     </script>
 </body>
 </html>
