@@ -1,6 +1,5 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
-
 // Creamos un "Pool" de conexiones (más eficiente que una conexión única)
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
@@ -8,11 +7,11 @@ const pool = mysql.createPool({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: process.env.DB_PORT,
+    timezone: 'Z',            // <-- AGREGAR: interpreta los DATETIME de MySQL como UTC
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 });
-
 // Probamos la conexión al iniciar
 pool.getConnection()
     .then(connection => {
@@ -22,5 +21,4 @@ pool.getConnection()
     .catch(err => {
         console.error('❌ Error conectando a la base de datos:', err.message);
     });
-
 module.exports = pool;

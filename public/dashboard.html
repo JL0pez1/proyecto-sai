@@ -4,943 +4,1353 @@
     <meta charset="UTF-8">
     <title>Dashboard - SAI</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        /* ===== ESTILOS ADICIONALES PARA LOS NUEVOS MÓDULOS ===== */
+        .badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600; }
+        .badge-pendiente   { background:#fff3cd; color:#856404; }
+        .badge-aceptada    { background:#d1e7dd; color:#0f5132; }
+        .badge-rechazada   { background:#f8d7da; color:#842029; }
+        .badge-regular     { background:#e2e3e5; color:#383d41; }
+        .badge-frecuente   { background:#cfe2ff; color:#084298; }
+        .badge-preferencial{ background:#d1e7dd; color:#0f5132; }
+        .badge-vip         { background:#fff3cd; color:#856404; }
 
-        /* Badges de estado */
-        .badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .badge-pendiente  { background: #fff3cd; color: #856404; }
-        .badge-aceptada   { background: #d1e7dd; color: #0f5132; }
-        .badge-rechazada  { background: #f8d7da; color: #842029; }
-        .badge-regular    { background: #e2e3e5; color: #383d41; }
-        .badge-frecuente  { background: #cfe2ff; color: #084298; }
-        .badge-preferencial { background: #d1e7dd; color: #0f5132; }
-        .badge-vip        { background: #fff3cd; color: #856404; }
+        .tabla-sai { width:100%; border-collapse:collapse; background:white; border-radius:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+        .tabla-sai thead tr { background:#2c3e50; color:white; }
+        .tabla-sai th,.tabla-sai td { padding:11px 13px; text-align:left; font-size:13px; }
+        .tabla-sai tbody tr { border-bottom:1px solid #f0f0f0; transition:background .15s; }
+        .tabla-sai tbody tr:hover { background:#f8f9fa; }
 
-        /* Tabla mejorada */
-        .tabla-sai {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-        }
-        .tabla-sai thead tr {
-            background: #2c3e50;
-            color: white;
-        }
-        .tabla-sai th, .tabla-sai td {
-            padding: 12px 14px;
-            text-align: left;
-            font-size: 14px;
-        }
-        .tabla-sai tbody tr {
-            border-bottom: 1px solid #f0f0f0;
-            transition: background 0.15s;
-        }
-        .tabla-sai tbody tr:hover { background: #f8f9fa; }
+        .modulo-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+        .modulo-header h3 { margin:0; font-size:17px; color:#2c3e50; }
 
-        /* Barra superior de módulo */
-        .modulo-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .modulo-header h3 { margin: 0; font-size: 18px; color: #2c3e50; }
+        .cards-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:18px; }
+        .card-stat { background:white; border-radius:10px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.08); text-align:center; }
+        .card-stat .numero { font-size:26px; font-weight:700; color:#2c3e50; }
+        .card-stat .etiqueta { font-size:11px; color:#7f8c8d; margin-top:3px; }
 
-        /* Tarjetas resumen */
-        .cards-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-        .card-stat {
-            background: white;
-            border-radius: 10px;
-            padding: 18px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-            text-align: center;
-        }
-        .card-stat .numero { font-size: 28px; font-weight: 700; color: #2c3e50; }
-        .card-stat .etiqueta { font-size: 12px; color: #7f8c8d; margin-top: 4px; }
+        .btn-accion { border:none; padding:5px 9px; border-radius:4px; cursor:pointer; font-size:12px; margin:2px; color:white; transition:opacity .2s; }
+        .btn-accion:hover { opacity:.82; }
+        .btn-edit   { background:#f39c12; }
+        .btn-delete { background:#e74c3c; }
+        .btn-view   { background:#3498db; }
+        .btn-accept { background:#27ae60; }
+        .btn-reject { background:#c0392b; }
 
-        /* Botones de acción en tabla */
-        .btn-accion {
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            margin: 2px;
-            color: white;
-            transition: opacity 0.2s;
-        }
-        .btn-accion:hover { opacity: 0.85; }
-        .btn-edit   { background: #f39c12; }
-        .btn-delete { background: #e74c3c; }
-        .btn-view   { background: #3498db; }
-        .btn-accept { background: #27ae60; }
-        .btn-reject { background: #e74c3c; }
+        .filtros-row { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+        .filtros-row input,.filtros-row select { padding:8px 11px; border:1px solid #ddd; border-radius:6px; font-size:13px; background:white; }
 
-        /* Modal detalle cotización */
-        .detalle-item {
-            background: #f8f9fa;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 8px;
-            font-size: 13px;
-        }
-        .detalle-item strong { display: block; margin-bottom: 4px; font-size: 14px; }
-        .detalle-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px 16px;
+        .tab-btns { display:flex; gap:0; margin-bottom:20px; border-radius:8px; overflow:hidden; border:1px solid #ddd; width:fit-content; }
+        .tab-btn { padding:10px 24px; border:none; background:#f8f9fa; cursor:pointer; font-size:14px; transition:all .2s; }
+        .tab-btn.activo { background:#2c3e50; color:white; font-weight:600; }
+
+        .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        .form-grid .full { grid-column:1/-1; }
+        .form-group { margin:0; }
+        .form-group label { display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px; }
+        .form-group input,.form-group select,.form-group textarea {
+            width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:6px; font-size:13px; box-sizing:border-box;
         }
 
-        /* Filtros */
-        .filtros-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
-        .filtros-row input,
-        .filtros-row select {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 13px;
-            background: white;
-        }
+        .linea-detalle { background:#f8f9fa; border-radius:8px; padding:14px; margin-bottom:10px; position:relative; border:1px solid #e9ecef; }
+        .linea-detalle .btn-remove { position:absolute; top:8px; right:8px; background:#e74c3c; color:white; border:none; border-radius:50%; width:22px; height:22px; cursor:pointer; font-size:14px; line-height:1; }
+        .linea-grid { display:grid; grid-template-columns:2fr 1fr 1fr; gap:10px; }
 
-        /* Loading spinner */
-        .loading { text-align: center; padding: 40px; color: #7f8c8d; }
+        .loading { text-align:center; padding:40px; color:#7f8c8d; }
+
+        /* modal más ancho para cotizaciones */
+        .modal-content.wide { max-width:700px; max-height:90vh; overflow-y:auto; }
+
+        .seccion-cliente-nuevo { background:#eaf4fb; border-radius:8px; padding:14px; margin-top:10px; border:1px solid #aed6f1; }
+        .seccion-cliente-nuevo h4 { margin:0 0 12px; color:#1a5276; font-size:14px; }
+
+        .precio-auto { background:#eafaf1; border:1px solid #a9dfbf; border-radius:6px; padding:8px 12px; margin-top:8px; font-size:13px; color:#1e8449; display:none; }
     </style>
 </head>
 <body>
-    <div class="dashboard-layout">
-        <aside class="sidebar">
-            <div class="sidebar-header">SAI Imprenta</div>
-            <ul class="sidebar-menu" id="menuLateral"></ul>
-            <div style="padding: 20px; text-align: center;">
-                <button id="btnCerrarSesion" class="btn-primary" style="background-color: #e74c3c;">Cerrar Sesión</button>
-            </div>
-        </aside>
+<div class="dashboard-layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">SAI Imprenta</div>
+        <ul class="sidebar-menu" id="menuLateral"></ul>
+        <div style="padding:20px;text-align:center;">
+            <button id="btnCerrarSesion" class="btn-primary" style="background:#e74c3c;">Cerrar Sesión</button>
+        </div>
+    </aside>
+    <main class="main-content">
+        <h1 id="tituloSeccion">Bienvenido al Sistema</h1>
+        <div id="notificacionWrapper" class="notificacion-wrap"></div>
+        <div id="contenedorVistas"><p>Selecciona un módulo en la barra lateral.</p></div>
+    </main>
+</div>
 
-        <main class="main-content">
-            <h1 id="tituloSeccion">Bienvenido al Sistema</h1>
-            <div id="contenedorVistas">
-                <p>Selecciona un módulo en la barra lateral para comenzar.</p>
+<!-- ===== MODALES USUARIOS ===== -->
+<div id="modalEditar" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <h3>✏️ Editar Usuario</h3>
+        <form id="formEditarUsuario">
+            <input type="hidden" id="editUserId">
+            <div class="form-group" style="margin-bottom:12px;"><label>Nombre Completo</label><input type="text" id="editUserName" required></div>
+            <div class="form-group" style="margin-bottom:12px;"><label>Asignar Rol</label>
+                <select id="editUserRole" required>
+                    <option value="">Selecciona...</option>
+                    <option value="1">👑 Administrador</option>
+                    <option value="2">💼 Ventas / Recepción</option>
+                    <option value="3">⚙️ Producción</option>
+                </select>
             </div>
-        </main>
+            <div style="display:flex;gap:10px;margin-top:16px;">
+                <button type="submit" class="btn-primary" style="background:#27ae60;">Guardar</button>
+                <button type="button" class="btn-primary" style="background:#95a5a6;" onclick="cerrarModal('modalEditar')">Cancelar</button>
+            </div>
+        </form>
     </div>
+</div>
 
-    <!-- ===== MODALES USUARIOS ===== -->
-    <div id="modalEditar" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <h3>✏️ Editar Usuario</h3>
-            <form id="formEditarUsuario">
-                <input type="hidden" id="editUserId">
-                <div class="form-group">
-                    <label>Nombre Completo</label>
-                    <input type="text" id="editUserName" required>
-                </div>
-                <div class="form-group">
-                    <label>Asignar Rol</label>
-                    <select id="editUserRole" required>
-                        <option value="">Selecciona un rol...</option>
-                        <option value="1">👑 Administrador (Dueño/Gerente)</option>
-                        <option value="2">💼 Ventas / Recepción</option>
-                        <option value="3">⚙️ Producción (Taller)</option>
+<div id="modalCrear" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <h3>➕ Nuevo Personal</h3>
+        <form id="formCrearUsuario">
+            <div class="form-group" style="margin-bottom:10px;"><label>Nombre</label><input type="text" id="crearUserName" required></div>
+            <div class="form-group" style="margin-bottom:10px;"><label>Correo</label><input type="email" id="crearUserEmail" required></div>
+            <div class="form-group" style="margin-bottom:10px;"><label>Contraseña</label><input type="password" id="crearUserPass" required minlength="6"></div>
+            <div class="form-group" style="margin-bottom:10px;"><label>Rol</label>
+                <select id="crearUserRole" required>
+                    <option value="">Selecciona...</option>
+                    <option value="1">👑 Administrador</option>
+                    <option value="2">💼 Ventas</option>
+                    <option value="3">⚙️ Producción</option>
+                </select>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px;">
+                <button type="submit" class="btn-primary" style="background:#3498db;">Crear</button>
+                <button type="button" class="btn-primary" style="background:#95a5a6;" onclick="cerrarModal('modalCrear')">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalPassword" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <h3>🔑 Reiniciar Contraseña</h3>
+        <form id="formResetPassword">
+            <input type="hidden" id="resetUserId">
+            <div class="form-group" style="margin-bottom:12px;"><label>Nueva Contraseña</label><input type="password" id="resetUserPass" required minlength="6"></div>
+            <div style="display:flex;gap:10px;margin-top:16px;">
+                <button type="submit" class="btn-primary" style="background:#f39c12;">Actualizar</button>
+                <button type="button" class="btn-primary" style="background:#95a5a6;" onclick="cerrarModal('modalPassword')">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== MODAL CLIENTE ===== -->
+<div id="modalCliente" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:560px;">
+        <h3 id="tituloModalCliente">➕ Nuevo Cliente</h3>
+        <form id="formCliente">
+            <input type="hidden" id="clienteId">
+            <div class="form-grid">
+                <div class="form-group full"><label>Nombre Completo *</label><input type="text" id="clienteNombre" required placeholder="Ej. Juan García"></div>
+                <div class="form-group"><label>Teléfono</label><input type="text" id="clienteTelefono" placeholder="5555-1234"></div>
+                <div class="form-group"><label>Correo</label><input type="email" id="clienteCorreo" placeholder="juan@email.com"></div>
+                <div class="form-group"><label>NIT / DPI</label><input type="text" id="clienteNit" placeholder="12345678"></div>
+                <div class="form-group"><label>Tipo de Cliente</label>
+                    <select id="clienteTipo">
+                        <option value="Regular">Regular</option>
+                        <option value="Frecuente">Frecuente</option>
+                        <option value="Preferencial">Preferencial</option>
+                        <option value="VIP">VIP</option>
                     </select>
                 </div>
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn-primary" style="background: #27ae60;">Guardar Cambios</button>
-                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalEditar')">Cancelar</button>
+                <div class="form-group"><label>Descuento (%)</label><input type="number" id="clienteDescuento" min="0" max="100" step="0.01" value="0"></div>
+                <div class="form-group"><label>Papel Preferido</label><input type="text" id="clientePapel" placeholder="Ej. Bond 75g"></div>
+                <div class="form-group full"><label>Diseño Frecuente</label>
+                    <textarea id="clienteDiseno" rows="2" placeholder="Describe qué suele imprimir..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;resize:vertical;box-sizing:border-box;"></textarea>
                 </div>
-            </form>
-        </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px;">
+                <button type="submit" class="btn-primary" style="background:#27ae60;" id="btnGuardarCliente">Guardar</button>
+                <button type="button" class="btn-primary" style="background:#95a5a6;" onclick="cerrarModal('modalCliente')">Cancelar</button>
+            </div>
+        </form>
     </div>
+</div>
 
-    <div id="modalCrear" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <h3>➕ Nuevo Personal</h3>
-            <form id="formCrearUsuario">
-                <div class="form-group"><label>Nombre Completo</label><input type="text" id="crearUserName" required></div>
-                <div class="form-group"><label>Correo</label><input type="email" id="crearUserEmail" required></div>
-                <div class="form-group"><label>Contraseña Temporal</label><input type="password" id="crearUserPass" required minlength="6"></div>
-                <div class="form-group">
-                    <label>Rol</label>
-                    <select id="crearUserRole" required>
-                        <option value="">Selecciona...</option>
-                        <option value="1">👑 Administrador</option>
-                        <option value="2">💼 Ventas / Recepción</option>
-                        <option value="3">⚙️ Producción</option>
+<!-- ===== MODAL NUEVA COTIZACIÓN ===== -->
+<div id="modalCotizacion" class="modal-overlay" style="display:none;">
+    <div class="modal-content wide">
+        <h3>📝 Nueva Cotización</h3>
+        <form id="formCotizacion">
+
+            <!-- Tabs: cliente existente / cliente nuevo -->
+            <div class="tab-btns">
+                <button type="button" class="tab-btn activo" id="tabExistente" onclick="switchTab('existente')">Cliente existente</button>
+                <button type="button" class="tab-btn" id="tabNuevo" onclick="switchTab('nuevo')">+ Cliente nuevo</button>
+            </div>
+
+            <!-- Panel cliente existente -->
+            <div id="panelExistente">
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label>Selecciona cliente *</label>
+                    <select id="cotCliente" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+                        <option value="">Cargando clientes...</option>
                     </select>
                 </div>
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn-primary" style="background: #3498db;">Crear Usuario</button>
-                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalCrear')">Cancelar</button>
+            </div>
+
+            <!-- Panel cliente nuevo -->
+            <div id="panelNuevo" style="display:none;">
+                <div class="seccion-cliente-nuevo">
+                    <h4>📋 Datos del nuevo cliente</h4>
+                    <div class="form-grid">
+                        <div class="form-group full"><label>Nombre *</label><input type="text" id="nuevoNombre" placeholder="Nombre completo"></div>
+                        <div class="form-group"><label>Teléfono</label><input type="text" id="nuevoTelefono" placeholder="5555-1234"></div>
+                        <div class="form-group"><label>Correo</label><input type="email" id="nuevoCorreo" placeholder="correo@email.com"></div>
+                        <div class="form-group"><label>NIT / DPI</label><input type="text" id="nuevoNit" placeholder="12345678"></div>
+                        <div class="form-group"><label>Tipo de Cliente</label>
+                            <select id="nuevoTipo">
+                                <option value="Regular">Regular</option>
+                                <option value="Frecuente">Frecuente</option>
+                                <option value="Preferencial">Preferencial</option>
+                                <option value="VIP">VIP</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Papel Preferido</label><input type="text" id="nuevoPapel" placeholder="Ej. Bond 75g"></div>
+                        <div class="form-group full"><label>Diseño Frecuente</label>
+                            <textarea id="nuevoDiseno" rows="2" placeholder="¿Qué suele imprimir?" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;resize:vertical;box-sizing:border-box;"></textarea>
+                        </div>
+                    </div>
                 </div>
-            </form>
+            </div>
+
+            <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
+
+            <!-- Detalle de trabajos -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <strong style="font-size:14px;">Detalle de trabajos</strong>
+                <button type="button" onclick="agregarLinea()" class="btn-primary" style="background:#3498db;width:auto;padding:6px 14px;font-size:13px;">+ Agregar línea</button>
+            </div>
+            <div id="contenedorDetalle"></div>
+
+            <div style="text-align:right;margin-top:12px;font-size:16px;color:#2c3e50;font-weight:700;">
+                Total estimado: Q <span id="totalCot">0.00</span>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:18px;">
+                <button type="submit" class="btn-primary" style="background:#27ae60;">Crear Cotización</button>
+                <button type="button" class="btn-primary" style="background:#95a5a6;" onclick="cerrarModal('modalCotizacion')">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== MODAL VER COTIZACIÓN ===== -->
+<div id="modalVerCot" class="modal-overlay" style="display:none;">
+    <div class="modal-content wide">
+        <h3>📋 Detalle de Cotización</h3>
+        <div id="contenidoVerCot"></div>
+        <div style="display:flex;gap:10px;margin-top:18px;">
+            <button type="button" class="btn-primary" style="background:#3498db;" id="btnDescargarPdf">⬇️ Descargar PDF</button>
+            <button type="button" class="btn-primary" style="background:#95a5a6;" onclick="cerrarModal('modalVerCot')">Cerrar</button>
         </div>
     </div>
+</div>
 
-    <div id="modalPassword" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <h3>🔑 Reiniciar Contraseña</h3>
-            <form id="formResetPassword">
-                <input type="hidden" id="resetUserId">
-                <div class="form-group"><label>Nueva Contraseña</label><input type="password" id="resetUserPass" required minlength="6"></div>
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn-primary" style="background: #f39c12;">Actualizar Clave</button>
-                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalPassword')">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    </div>
+<script>
+// ===== CONFIG =====
+const API = 'http://localhost:3000/api';
+const token = localStorage.getItem('token');
+if (!token) window.location.href = 'login.html';
+const headers = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
 
-    <!-- ===== MODAL CLIENTE ===== -->
-    <div id="modalCliente" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 560px;">
-            <h3 id="tituloModalCliente">➕ Nuevo Cliente</h3>
-            <form id="formCliente">
-                <input type="hidden" id="clienteId">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <div class="form-group" style="grid-column: 1/-1;">
-                        <label>Nombre Completo *</label>
-                        <input type="text" id="clienteNombre" required placeholder="Ej. Juan García">
-                    </div>
-                    <div class="form-group">
-                        <label>Teléfono</label>
-                        <input type="text" id="clienteTelefono" placeholder="5555-1234">
-                    </div>
-                    <div class="form-group">
-                        <label>Correo</label>
-                        <input type="email" id="clienteCorreo" placeholder="juan@email.com">
-                    </div>
-                    <div class="form-group">
-                        <label>NIT / DPI</label>
-                        <input type="text" id="clienteNit" placeholder="12345678">
-                    </div>
-                    <div class="form-group">
-                        <label>Tipo de Cliente</label>
-                        <select id="clienteTipo">
-                            <option value="Regular">Regular</option>
-                            <option value="Frecuente">Frecuente</option>
-                            <option value="Preferencial">Preferencial</option>
-                            <option value="VIP">VIP</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Descuento (%)</label>
-                        <input type="number" id="clienteDescuento" min="0" max="100" step="0.01" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Papel Preferido</label>
-                        <input type="text" id="clientePapel" placeholder="Ej. Bond 75g">
-                    </div>
-                    <div class="form-group" style="grid-column: 1/-1;">
-                        <label>Diseño Frecuente</label>
-                        <textarea id="clienteDiseno" rows="2" placeholder="Describe qué suele imprimir este cliente..." style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; resize:vertical;"></textarea>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn-primary" style="background: #27ae60;" id="btnGuardarCliente">Guardar</button>
-                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalCliente')">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    </div>
+function decodificarToken(t) {
+    try { return JSON.parse(atob(t.split('.')[1])); } catch(e) { return null; }
+}
+const datosToken = decodificarToken(token);
+const rolID = datosToken ? parseInt(datosToken.id_rol) : null;
 
-    <!-- ===== MODAL COTIZACIÓN ===== -->
-    <div id="modalCotizacion" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
-            <h3>📝 Nueva Cotización</h3>
-            <form id="formCotizacion">
-                <div class="form-group">
-                    <label>Cliente *</label>
-                    <select id="cotCliente" required>
-                        <option value="">Selecciona un cliente...</option>
-                    </select>
-                </div>
+// ===== MENÚ =====
+const menuLateral = document.getElementById('menuLateral');
+let htmlMenu = '';
+if (rolID === 1) {
+    htmlMenu += `<li><a href="#" onclick="cargarVista('usuarios')">🔐 Usuarios y Seguridad</a></li>`;
+    //htmlMenu += `<li><a href="#" onclick="cargarVista('insumos')">📦 Gestión de Insumos</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('produccion')">🏭 Producción</a></li>`;
+} else if (rolID === 2) {
+    htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('produccion')">🏭 Producción</a></li>`;
+} else if (rolID === 3) {
+    htmlMenu += `<li><a href="#" onclick="cargarVista('produccion')">🏭 Producción</a></li>`;
+} else {
+    htmlMenu += `<li><a href="#">⚠️ Rol no reconocido</a></li>`;
+}
+menuLateral.innerHTML = htmlMenu;
 
-                <hr style="margin: 16px 0; border: none; border-top: 1px solid #eee;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <strong>Detalle de trabajos</strong>
-                    <button type="button" onclick="agregarLineaDetalle()" class="btn-primary" style="background:#3498db; width:auto; padding:6px 14px; font-size:13px;">+ Agregar línea</button>
-                </div>
+// ===== HELPERS =====
+function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
+function cerrarCualquierModal(id) { cerrarModal(id); }
 
-                <div id="contenedorDetalle"></div>
+function badgeEstado(e) {
+    const m = { Pendiente:'badge-pendiente', Aceptada:'badge-aceptada', Rechazada:'badge-rechazada' };
+    return `<span class="badge ${m[e]||''}">${e}</span>`;
+}
+function badgeTipo(t) {
+    const m = { Regular:'badge-regular', Frecuente:'badge-frecuente', Preferencial:'badge-preferencial', VIP:'badge-vip' };
+    return `<span class="badge ${m[t]||'badge-regular'}">${t}</span>`;
+}
 
-                <div style="text-align:right; margin-top:12px; font-size:16px; color:#2c3e50;">
-                    <strong>Total estimado: Q <span id="totalCotizacion">0.00</span></strong>
-                </div>
+function parseLocalDatetime(fecha) {
+    if (!fecha) return null;
+    if (fecha instanceof Date) return fecha;
 
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn-primary" style="background: #27ae60;">Crear Cotización</button>
-                    <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalCotizacion')">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    const str = fecha.toString();
+    if (/Z$|[+-]\d{2}:\d{2}$/.test(str)) {
+        const parsed = new Date(str);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
 
-    <!-- ===== MODAL VER COTIZACIÓN ===== -->
-    <div id="modalVerCotizacion" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 620px; max-height: 90vh; overflow-y: auto;">
-            <h3>📋 Detalle de Cotización</h3>
-            <div id="contenidoVerCotizacion"></div>
-            <div style="margin-top: 20px;">
-                <button type="button" class="btn-primary" style="background: #95a5a6;" onclick="cerrarModal('modalVerCotizacion')">Cerrar</button>
+    const match = str.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+    if (match) {
+        return new Date(
+            parseInt(match[1], 10),
+            parseInt(match[2], 10) - 1,
+            parseInt(match[3], 10),
+            parseInt(match[4], 10),
+            parseInt(match[5], 10),
+            parseInt(match[6], 10)
+        );
+    }
+
+    const parsed = new Date(str);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatoFecha(fecha) {
+    const d = parseLocalDatetime(fecha);
+    if (!d) return '—';
+    return d.toLocaleString('es-GT');
+}
+
+function calcularDuracion(fechaInicio, fechaFin) {
+    if (!fechaInicio || !fechaFin) return '—';
+    const inicio = parseLocalDatetime(fechaInicio);
+    const fin = parseLocalDatetime(fechaFin);
+    if (!inicio || !fin) return '—';
+    const horas = Math.max(0, (fin.getTime() - inicio.getTime()) / 3600000);
+    return `${horas.toFixed(2)} h`;
+}
+
+function mostrarNotificacion(texto, tipo = 'info', duracion = 4000) {
+    const wrapper = document.getElementById('notificacionWrapper');
+    if (!wrapper) return;
+    const n = document.createElement('div');
+    n.className = `notificacion ${tipo}`;
+    n.textContent = texto;
+    wrapper.appendChild(n);
+    setTimeout(() => n.remove(), duracion);
+}
+
+function formatearTiempoRestante(fechaInicio, fechaLimite, ahora = Date.now()) {
+    if (!fechaInicio || !fechaLimite) return 'No iniciado';
+    const inicio = new Date(fechaInicio).getTime();
+    const limite = new Date(fechaLimite).getTime();
+    if (Number.isNaN(inicio) || Number.isNaN(limite)) return 'No iniciado';
+    const diff = Math.max(0, limite - ahora);
+    const h = Math.floor(diff / (1000 * 60 * 60));
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const s = Math.floor((diff % (1000 * 60)) / 1000);
+    return `${h}h ${m}m ${s}s`;
+}
+
+function mostrarConfirmacion(mensaje, onAceptar, onCancelar = () => {}) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'confirmOverlay';
+    overlay.style.display = 'flex';
+    overlay.innerHTML = `
+        <div class="modal-content" style="max-width:420px;">
+            <h3>Confirmar</h3>
+            <p style="margin:12px 0 0;line-height:1.4;">${mensaje}</p>
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
+                <button type="button" class="btn-primary" style="background:#95a5a6;">Cancelar</button>
+                <button type="button" class="btn-primary" style="background:#c0392b;">Aceptar</button>
             </div>
         </div>
-    </div>
+    `;
+    overlay.querySelector('button').addEventListener('click', () => {
+        overlay.remove();
+        onCancelar();
+    });
+    overlay.querySelectorAll('button')[1].addEventListener('click', () => {
+        overlay.remove();
+        onAceptar();
+    });
+    document.body.appendChild(overlay);
+}
 
-    <script>
-        // ===== CONFIGURACIÓN BASE =====
-        const API = 'http://localhost:3000/api';
-        const token = localStorage.getItem('token');
-        if (!token) window.location.href = 'login.html';
+// ===== CARGAR VISTA =====
+async function cargarVista(modulo) {
+    const titulo     = document.getElementById('tituloSeccion');
+    const contenedor = document.getElementById('contenedorVistas');
 
-        function headers() {
-            return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-        }
-
-        function decodificarToken(t) {
-            try { return JSON.parse(atob(t.split('.')[1])); } catch(e) { return null; }
-        }
-
-        const datosToken = decodificarToken(token);
-        const rolID = datosToken ? parseInt(datosToken.id_rol) : null;
-
-        // ===== MENÚ LATERAL =====
-        const menuLateral = document.getElementById('menuLateral');
-        let htmlMenu = '';
-        if (rolID === 1) {
-            htmlMenu += `<li><a href="#" onclick="cargarVista('usuarios')">🔐 Usuarios y Seguridad</a></li>`;
-           // htmlMenu += `<li><a href="#" onclick="cargarVista('insumos')">📦 Gestión de Insumos</a></li>`;
-            htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
-            htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
-        } else if (rolID === 2) {
-            htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
-            htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
-        } else if (rolID === 3) {
-            htmlMenu += `<li><a href="#" onclick="cargarVista('ordenes')">🖨️ Órdenes (Vista Taller)</a></li>`;
-        } else {
-            htmlMenu += `<li><a href="#">⚠️ Rol no reconocido</a></li>`;
-        }
-        menuLateral.innerHTML = htmlMenu;
-
-        // ===== HELPER: BADGE ESTADO COTIZACIÓN =====
-        function badgeEstado(estado) {
-            const mapa = { 'Pendiente': 'badge-pendiente', 'Aceptada': 'badge-aceptada', 'Rechazada': 'badge-rechazada' };
-            return `<span class="badge ${mapa[estado] || ''}">${estado}</span>`;
-        }
-
-        // ===== HELPER: BADGE TIPO CLIENTE =====
-        function badgeTipo(tipo) {
-            const mapa = { 'Regular': 'badge-regular', 'Frecuente': 'badge-frecuente', 'Preferencial': 'badge-preferencial', 'VIP': 'badge-vip' };
-            return `<span class="badge ${mapa[tipo] || 'badge-regular'}">${tipo}</span>`;
-        }
-
-        // ===== CERRAR MODAL =====
-        function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
-        // Compatibilidad con nombre anterior
-        function cerrarCualquierModal(id) { cerrarModal(id); }
-
-        // ===== CARGAR VISTA =====
-        async function cargarVista(modulo) {
-            const titulo    = document.getElementById('tituloSeccion');
-            const contenedor = document.getElementById('contenedorVistas');
-
-            // =========== MÓDULO USUARIOS ===========
-            if (modulo === 'usuarios') {
-                titulo.innerText = '🔐 Gestión de Usuarios y Seguridad';
-                contenedor.innerHTML = `
-                    <div class="modulo-header">
-                        <h3>Lista de Personal</h3>
-                        <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="mostrarModalUsuario()">+ Nuevo Usuario</button>
-                    </div>
-                    <table class="tabla-sai">
-                        <thead><tr>
-                            <th>ID</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th style="text-align:center;">Acciones</th>
-                        </tr></thead>
-                        <tbody id="tablaUsuariosBody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
-                    </table>`;
-                try {
-                    const res = await fetch(`${API}/usuarios`, { headers: headers() });
-                    const data = await res.json();
-                    const tbody = document.getElementById('tablaUsuariosBody');
-                    tbody.innerHTML = '';
-                    if (data.datos && data.datos.length > 0) {
-                        data.datos.forEach(u => {
-                            tbody.innerHTML += `<tr>
-                                <td>${u.id_usuario}</td>
-                                <td>${u.nombre_completo}</td>
-                                <td>${u.correo}</td>
-                                <td><span class="badge badge-frecuente">${u.rol || 'Sin rol'}</span></td>
-                                <td>${u.estado}</td>
-                                <td style="text-align:center;">
-                                    <button class="btn-accion btn-edit" onclick="editarUsuario(${u.id_usuario},'${u.nombre_completo}')">✏️ Editar</button>
-                                    <button class="btn-accion btn-delete" onclick="desactivarUsuario(${u.id_usuario})">🚫 Bajar</button>
-                                    <button class="btn-accion" style="background:#34495e;" onclick="resetearClave(${u.id_usuario})">🔑 Clave</button>
-                                </td>
-                            </tr>`;
-                        });
-                    } else {
-                        tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay usuarios registrados.</td></tr>';
-                    }
-                } catch(e) {
-                    document.getElementById('tablaUsuariosBody').innerHTML = '<tr><td colspan="6" style="color:red;text-align:center;">Error al cargar datos</td></tr>';
-                }
-
-            // =========== MÓDULO CLIENTES ===========
-            } else if (modulo === 'clientes') {
-                titulo.innerText = '👥 Gestión de Clientes';
-                contenedor.innerHTML = `
-                    <div class="modulo-header">
-                        <h3>Lista de Clientes</h3>
-                        <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCliente()">+ Nuevo Cliente</button>
-                    </div>
-                    <div class="filtros-row">
-                        <input type="text" id="filtroCliente" placeholder="🔍 Buscar por nombre o NIT..." oninput="filtrarClientes()" style="flex:1; min-width:200px;">
-                        <select id="filtroTipoCliente" onchange="filtrarClientes()">
-                            <option value="">Todos los tipos</option>
-                            <option value="Regular">Regular</option>
-                            <option value="Frecuente">Frecuente</option>
-                            <option value="Preferencial">Preferencial</option>
-                            <option value="VIP">VIP</option>
-                        </select>
-                    </div>
-                    <div class="cards-row" id="statsClientes"></div>
-                    <table class="tabla-sai">
-                        <thead><tr>
-                            <th>ID</th><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>NIT/DPI</th><th>Tipo</th><th>Descuento</th><th style="text-align:center;">Acciones</th>
-                        </tr></thead>
-                        <tbody id="tablaClientesBody"><tr><td colspan="8" class="loading">Cargando clientes...</td></tr></tbody>
-                    </table>`;
-
-                await cargarClientes();
-
-            // =========== MÓDULO COTIZACIONES ===========
-            } else if (modulo === 'cotizaciones') {
-                titulo.innerText = '📝 Gestión de Cotizaciones';
-                contenedor.innerHTML = `
-                    <div class="modulo-header">
-                        <h3>Lista de Cotizaciones</h3>
-                        <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCotizacion()">+ Nueva Cotización</button>
-                    </div>
-                    <div class="filtros-row">
-                        <input type="text" id="filtroCotizacion" placeholder="🔍 Buscar por cliente..." oninput="filtrarCotizaciones()" style="flex:1; min-width:200px;">
-                        <select id="filtroEstadoCot" onchange="filtrarCotizaciones()">
-                            <option value="">Todos los estados</option>
-                            <option value="Pendiente">Pendiente</option>
-                            <option value="Aceptada">Aceptada</option>
-                            <option value="Rechazada">Rechazada</option>
-                        </select>
-                    </div>
-                    <div class="cards-row" id="statsCotizaciones"></div>
-                    <table class="tabla-sai">
-                        <thead><tr>
-                            <th>ID</th><th>Cliente</th><th>Fecha</th><th>Estado</th><th>Total</th><th>Creada por</th><th style="text-align:center;">Acciones</th>
-                        </tr></thead>
-                        <tbody id="tablaCotizacionesBody"><tr><td colspan="7" class="loading">Cargando cotizaciones...</td></tr></tbody>
-                    </table>`;
-
-                await cargarCotizaciones();
-
-            } else if (modulo === 'insumos') {
-                titulo.innerText = '📦 Gestión de Insumos';
-                contenedor.innerHTML = '<p>Próximamente: Módulo de Inventario e Insumos</p>';
+    if (modulo === 'usuarios') {
+        titulo.innerText = '🔐 Gestión de Usuarios';
+        contenedor.innerHTML = `
+            <div class="modulo-header">
+                <h3>Lista de Personal</h3>
+                <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="mostrarModalUsuario()">+ Nuevo Usuario</button>
+            </div>
+            <table class="tabla-sai">
+                <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th style="text-align:center;">Acciones</th></tr></thead>
+                <tbody id="tablaUsuariosBody"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
+            </table>`;
+        try {
+            const res  = await fetch(`${API}/usuarios`, { headers: headers() });
+            const data = await res.json();
+            const tbody = document.getElementById('tablaUsuariosBody');
+            tbody.innerHTML = '';
+            if (data.datos && data.datos.length > 0) {
+                data.datos.forEach(u => {
+                    tbody.innerHTML += `<tr>
+                        <td>${u.nombre_completo}</td><td>${u.correo}</td>
+                        <td><span class="badge badge-frecuente">${u.rol||'Sin rol'}</span></td>
+                        <td>${u.estado}</td>
+                        <td style="text-align:center;">
+                            <button class="btn-accion btn-edit" onclick="editarUsuario(${u.id_usuario},'${u.nombre_completo.replace(/'/g,"\\'")}')">✏️ Editar</button>
+                            <button class="btn-accion btn-delete" onclick="desactivarUsuario(${u.id_usuario})">🚫 Bajar</button>
+                            <button class="btn-accion" style="background:#34495e;" onclick="resetearClave(${u.id_usuario})">🔑 Clave</button>
+                        </td>
+                    </tr>`;
+                });
             } else {
-                titulo.innerText = 'Módulo no disponible';
-                contenedor.innerHTML = '<p>Este módulo está en desarrollo.</p>';
+                tbody.innerHTML = '<tr><td colspan="5" class="loading">No hay usuarios.</td></tr>';
             }
+        } catch(e) {
+            document.getElementById('tablaUsuariosBody').innerHTML = '<tr><td colspan="5" style="color:red;text-align:center;">Error al cargar</td></tr>';
         }
 
-        // ======================================================
-        //  CLIENTES
-        // ======================================================
-        let todosLosClientes = [];
+    } else if (modulo === 'clientes') {
+        titulo.innerText = '👥 Gestión de Clientes';
+        contenedor.innerHTML = `
+            <div class="modulo-header">
+                <h3>Lista de Clientes</h3>
+                <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCliente()">+ Nuevo Cliente</button>
+            </div>
+            <div class="filtros-row">
+                <input type="text" id="filtroCliente" placeholder="🔍 Buscar nombre o NIT..." oninput="filtrarClientes()" style="flex:1;min-width:200px;">
+                <select id="filtroTipoCliente" onchange="filtrarClientes()">
+                    <option value="">Todos los tipos</option>
+                    <option value="Regular">Regular</option>
+                    <option value="Frecuente">Frecuente</option>
+                    <option value="Preferencial">Preferencial</option>
+                    <option value="VIP">VIP</option>
+                </select>
+            </div>
+            <div class="cards-row" id="statsClientes"></div>
+            <table class="tabla-sai">
+                <thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>NIT/DPI</th><th>Tipo</th><th>Desc.</th><th style="text-align:center;">Acciones</th></tr></thead>
+                <tbody id="tablaClientesBody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+            </table>`;
+        await cargarClientes();
 
-        async function cargarClientes() {
+    } else if (modulo === 'cotizaciones') {
+        titulo.innerText = '📝 Gestión de Cotizaciones';
+        contenedor.innerHTML = `
+            <div class="modulo-header">
+                <h3>Lista de Cotizaciones</h3>
+                <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCotizacion()">+ Nueva Cotización</button>
+            </div>
+            <div class="filtros-row">
+                <input type="text" id="filtroCot" placeholder="🔍 Buscar por cliente..." oninput="filtrarCotizaciones()" style="flex:1;min-width:200px;">
+                <select id="filtroEstadoCot" onchange="filtrarCotizaciones()">
+                    <option value="">Todos los estados</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Aceptada">Aceptada</option>
+                    <option value="Rechazada">Rechazada</option>
+                </select>
+            </div>
+            <div class="cards-row" id="statsCotizaciones"></div>
+            <table class="tabla-sai">
+                <thead><tr><th>Cliente</th><th>Fecha</th><th>Estado</th><th>Total</th><th>Creada por</th><th style="text-align:center;">Acciones</th></tr></thead>
+                <tbody id="tablaCotBody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+            </table>`;
+        await cargarCotizaciones();
+
+    } else if (modulo === 'produccion') {
+        titulo.innerText = '🏭 Producción';
+        contenedor.innerHTML = `
+            <div class="modulo-header">
+                <h3>Órdenes de Producción</h3>
+            </div>
+            <div class="cards-row" id="statsProduccion"></div>
+            <table class="tabla-sai">
+                <thead><tr><th>Cliente</th><th>Estado</th><th>Tiempo estimado</th><th>Fecha límite</th><th>Avance</th><th style="text-align:center;">Acciones</th></tr></thead>
+                <tbody id="tablaProduccionBody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+            </table>`;
+        await cargarProduccion();
+    } else if (modulo === 'insumos') {
+        titulo.innerText = '📦 Gestión de Insumos';
+        contenedor.innerHTML = '<p>Próximamente: Módulo de Inventario e Insumos</p>';
+    }
+}
+
+// =====================================================
+//  CLIENTES
+// =====================================================
+let todosClientes = [];
+
+async function cargarClientes() {
+    try {
+        const res  = await fetch(`${API}/clientes`, { headers: headers() });
+        const data = await res.json();
+        todosClientes = data.datos || [];
+        renderClientes(todosClientes);
+        const t=todosClientes.length, v=todosClientes.filter(c=>c.tipo_cliente==='VIP').length,
+              p=todosClientes.filter(c=>c.tipo_cliente==='Preferencial').length,
+              f=todosClientes.filter(c=>c.tipo_cliente==='Frecuente').length;
+        const el = document.getElementById('statsClientes');
+        if (el) el.innerHTML = `
+            <div class="card-stat"><div class="numero">${t}</div><div class="etiqueta">Total</div></div>
+            <div class="card-stat"><div class="numero" style="color:#856404;">${v}</div><div class="etiqueta">VIP</div></div>
+            <div class="card-stat"><div class="numero" style="color:#0f5132;">${p}</div><div class="etiqueta">Preferenciales</div></div>
+            <div class="card-stat"><div class="numero" style="color:#084298;">${f}</div><div class="etiqueta">Frecuentes</div></div>`;
+    } catch(e) {
+        const el = document.getElementById('tablaClientesBody');
+        if (el) el.innerHTML = '<tr><td colspan="8" style="color:red;text-align:center;">Error al cargar</td></tr>';
+    }
+}
+
+function renderClientes(lista) {
+    const tbody = document.getElementById('tablaClientesBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7" class="loading">No hay clientes.</td></tr>'; return; }
+    lista.forEach(c => {
+        tbody.innerHTML += `<tr>
+            <td><strong>${c.nombre}</strong></td>
+            <td>${c.telefono||'—'}</td>
+            <td>${c.correo||'—'}</td>
+            <td>${c.nit_dpi||'—'}</td>
+            <td>${badgeTipo(c.tipo_cliente)}</td>
+            <td>${c.descuento_porcentaje>0?c.descuento_porcentaje+'%':'—'}</td>
+            <td style="text-align:center;">
+                <button class="btn-accion btn-edit" onclick="editarCliente(${c.id_cliente})">✏️ Editar</button>
+                <button class="btn-accion btn-delete" onclick="eliminarCliente(${c.id_cliente},'${c.nombre.replace(/'/g,"\\'")}')">🗑️</button>
+            </td>
+        </tr>`;
+    });
+}
+
+function filtrarClientes() {
+    const txt  = (document.getElementById('filtroCliente')?.value||'').toLowerCase();
+    const tipo = document.getElementById('filtroTipoCliente')?.value||'';
+    renderClientes(todosClientes.filter(c =>
+        (!txt  || c.nombre.toLowerCase().includes(txt) || (c.nit_dpi&&c.nit_dpi.includes(txt))) &&
+        (!tipo || c.tipo_cliente===tipo)
+    ));
+}
+
+function abrirModalCliente(cliente=null) {
+    document.getElementById('formCliente').reset();
+    document.getElementById('clienteId').value='';
+    document.getElementById('tituloModalCliente').innerText = cliente ? '✏️ Editar Cliente' : '➕ Nuevo Cliente';
+    if (cliente) {
+        document.getElementById('clienteId').value      = cliente.id_cliente;
+        document.getElementById('clienteNombre').value  = cliente.nombre;
+        document.getElementById('clienteTelefono').value= cliente.telefono||'';
+        document.getElementById('clienteCorreo').value  = cliente.correo||'';
+        document.getElementById('clienteNit').value     = cliente.nit_dpi||'';
+        document.getElementById('clienteTipo').value    = cliente.tipo_cliente||'Regular';
+        document.getElementById('clienteDescuento').value=cliente.descuento_porcentaje||0;
+        document.getElementById('clientePapel').value   = cliente.tipo_papel_preferido||'';
+        document.getElementById('clienteDiseno').value  = cliente.diseno_frecuente||'';
+    }
+    document.getElementById('modalCliente').style.display='flex';
+}
+
+async function editarCliente(id) {
+    try {
+        const res=await fetch(`${API}/clientes/${id}`,{headers:headers()});
+        const data=await res.json();
+        if (data.exito) abrirModalCliente(data.datos);
+        else mostrarNotificacion('No se pudo cargar el cliente', 'error');
+    } catch(e){ mostrarNotificacion('Error de conexión', 'error'); }
+}
+
+async function eliminarCliente(id,nombre) {
+    mostrarConfirmacion(
+        `¿Eliminar al cliente "${nombre}"?`,
+        async () => {
             try {
-                const res = await fetch(`${API}/clientes`, { headers: headers() });
+                const res = await fetch(`${API}/clientes/${id}`, { method:'DELETE', headers: headers() });
                 const data = await res.json();
-                todosLosClientes = data.datos || [];
-                renderizarClientes(todosLosClientes);
-
-                // Stats
-                const total = todosLosClientes.length;
-                const vip   = todosLosClientes.filter(c => c.tipo_cliente === 'VIP').length;
-                const pref  = todosLosClientes.filter(c => c.tipo_cliente === 'Preferencial').length;
-                const frec  = todosLosClientes.filter(c => c.tipo_cliente === 'Frecuente').length;
-                const statsEl = document.getElementById('statsClientes');
-                if (statsEl) statsEl.innerHTML = `
-                    <div class="card-stat"><div class="numero">${total}</div><div class="etiqueta">Total clientes</div></div>
-                    <div class="card-stat"><div class="numero" style="color:#856404;">${vip}</div><div class="etiqueta">VIP</div></div>
-                    <div class="card-stat"><div class="numero" style="color:#0f5132;">${pref}</div><div class="etiqueta">Preferenciales</div></div>
-                    <div class="card-stat"><div class="numero" style="color:#084298;">${frec}</div><div class="etiqueta">Frecuentes</div></div>
-                `;
-            } catch(e) {
-                const tbody = document.getElementById('tablaClientesBody');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="color:red;text-align:center;">Error al cargar clientes</td></tr>';
-            }
-        }
-
-        function renderizarClientes(lista) {
-            const tbody = document.getElementById('tablaClientesBody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            if (!lista.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="loading">No hay clientes registrados.</td></tr>';
-                return;
-            }
-            lista.forEach(c => {
-                tbody.innerHTML += `<tr>
-                    <td>${c.id_cliente}</td>
-                    <td><strong>${c.nombre}</strong></td>
-                    <td>${c.telefono || '—'}</td>
-                    <td>${c.correo || '—'}</td>
-                    <td>${c.nit_dpi || '—'}</td>
-                    <td>${badgeTipo(c.tipo_cliente)}</td>
-                    <td>${c.descuento_porcentaje > 0 ? c.descuento_porcentaje + '%' : '—'}</td>
-                    <td style="text-align:center;">
-                        <button class="btn-accion btn-edit" onclick="editarCliente(${c.id_cliente})">✏️ Editar</button>
-                        <button class="btn-accion btn-delete" onclick="eliminarCliente(${c.id_cliente}, '${c.nombre.replace(/'/g,"\\'")}')">🗑️ Eliminar</button>
-                    </td>
-                </tr>`;
-            });
-        }
-
-        function filtrarClientes() {
-            const texto = (document.getElementById('filtroCliente')?.value || '').toLowerCase();
-            const tipo  = document.getElementById('filtroTipoCliente')?.value || '';
-            const filtrados = todosLosClientes.filter(c => {
-                const coincideTexto = !texto ||
-                    c.nombre.toLowerCase().includes(texto) ||
-                    (c.nit_dpi && c.nit_dpi.includes(texto));
-                const coincideTipo = !tipo || c.tipo_cliente === tipo;
-                return coincideTexto && coincideTipo;
-            });
-            renderizarClientes(filtrados);
-        }
-
-        function abrirModalCliente(cliente = null) {
-            document.getElementById('formCliente').reset();
-            document.getElementById('clienteId').value = '';
-            document.getElementById('tituloModalCliente').innerText = '➕ Nuevo Cliente';
-            document.getElementById('btnGuardarCliente').innerText = 'Guardar';
-            if (cliente) {
-                document.getElementById('tituloModalCliente').innerText = '✏️ Editar Cliente';
-                document.getElementById('clienteId').value    = cliente.id_cliente;
-                document.getElementById('clienteNombre').value = cliente.nombre;
-                document.getElementById('clienteTelefono').value = cliente.telefono || '';
-                document.getElementById('clienteCorreo').value   = cliente.correo || '';
-                document.getElementById('clienteNit').value      = cliente.nit_dpi || '';
-                document.getElementById('clienteTipo').value     = cliente.tipo_cliente || 'Regular';
-                document.getElementById('clienteDescuento').value = cliente.descuento_porcentaje || 0;
-                document.getElementById('clientePapel').value    = cliente.tipo_papel_preferido || '';
-                document.getElementById('clienteDiseno').value   = cliente.diseno_frecuente || '';
-            }
-            document.getElementById('modalCliente').style.display = 'flex';
-        }
-
-        async function editarCliente(id) {
-            try {
-                const res = await fetch(`${API}/clientes/${id}`, { headers: headers() });
-                const data = await res.json();
-                if (data.exito) abrirModalCliente(data.datos);
-                else alert('No se pudo cargar el cliente');
-            } catch(e) { alert('Error de conexión'); }
-        }
-
-        async function eliminarCliente(id, nombre) {
-            if (!confirm(`¿Eliminar al cliente "${nombre}"? Esta acción no se puede deshacer.`)) return;
-            try {
-                const res = await fetch(`${API}/clientes/${id}`, { method: 'DELETE', headers: headers() });
-                const data = await res.json();
-                if (data.exito) { alert('Cliente eliminado'); cargarClientes(); }
-                else alert('Error: ' + data.mensaje);
-            } catch(e) { alert('Error de conexión'); }
-        }
-
-        document.getElementById('formCliente').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('clienteId').value;
-            const body = {
-                nombre:               document.getElementById('clienteNombre').value,
-                telefono:             document.getElementById('clienteTelefono').value,
-                correo:               document.getElementById('clienteCorreo').value,
-                nit_dpi:              document.getElementById('clienteNit').value,
-                tipo_cliente:         document.getElementById('clienteTipo').value,
-                descuento_porcentaje: parseFloat(document.getElementById('clienteDescuento').value) || 0,
-                tipo_papel_preferido: document.getElementById('clientePapel').value,
-                diseno_frecuente:     document.getElementById('clienteDiseno').value,
-            };
-            try {
-                const url    = id ? `${API}/clientes/${id}` : `${API}/clientes`;
-                const method = id ? 'PUT' : 'POST';
-                const res    = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
-                const data   = await res.json();
                 if (data.exito) {
-                    alert(id ? '¡Cliente actualizado!' : '¡Cliente registrado!');
-                    cerrarModal('modalCliente');
+                    mostrarNotificacion('Cliente eliminado', 'success');
                     cargarClientes();
-                } else { alert('Error: ' + data.mensaje); }
-            } catch(e) { alert('Error de conexión'); }
-        });
-
-        // ======================================================
-        //  COTIZACIONES
-        // ======================================================
-        let todasLasCotizaciones = [];
-        let contadorLineas = 0;
-
-        async function cargarCotizaciones() {
-            try {
-                const res = await fetch(`${API}/cotizaciones`, { headers: headers() });
-                const data = await res.json();
-                todasLasCotizaciones = data.datos || [];
-                renderizarCotizaciones(todasLasCotizaciones);
-
-                // Stats
-                const total     = todasLasCotizaciones.length;
-                const pendientes = todasLasCotizaciones.filter(c => c.estado === 'Pendiente').length;
-                const aceptadas  = todasLasCotizaciones.filter(c => c.estado === 'Aceptada').length;
-                const rechazadas = todasLasCotizaciones.filter(c => c.estado === 'Rechazada').length;
-                const totalQ     = todasLasCotizaciones.reduce((s, c) => s + parseFloat(c.total || 0), 0);
-                const statsEl    = document.getElementById('statsCotizaciones');
-                if (statsEl) statsEl.innerHTML = `
-                    <div class="card-stat"><div class="numero">${total}</div><div class="etiqueta">Total</div></div>
-                    <div class="card-stat"><div class="numero" style="color:#856404;">${pendientes}</div><div class="etiqueta">Pendientes</div></div>
-                    <div class="card-stat"><div class="numero" style="color:#0f5132;">${aceptadas}</div><div class="etiqueta">Aceptadas</div></div>
-                    <div class="card-stat"><div class="numero" style="color:#842029;">${rechazadas}</div><div class="etiqueta">Rechazadas</div></div>
-                    <div class="card-stat"><div class="numero" style="color:#1a5276; font-size:20px;">Q${totalQ.toFixed(2)}</div><div class="etiqueta">Valor total</div></div>
-                `;
-            } catch(e) {
-                const tbody = document.getElementById('tablaCotizacionesBody');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="color:red;text-align:center;">Error al cargar cotizaciones</td></tr>';
-            }
-        }
-
-        function renderizarCotizaciones(lista) {
-            const tbody = document.getElementById('tablaCotizacionesBody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            if (!lista.length) {
-                tbody.innerHTML = '<tr><td colspan="7" class="loading">No hay cotizaciones registradas.</td></tr>';
-                return;
-            }
-            lista.forEach(c => {
-                const fecha = new Date(c.fecha_emision).toLocaleDateString('es-GT');
-                const esPendiente = c.estado === 'Pendiente';
-                tbody.innerHTML += `<tr>
-                    <td><strong>#${c.id_cotizacion}</strong></td>
-                    <td>${c.nombre_cliente || '—'}</td>
-                    <td>${fecha}</td>
-                    <td>${badgeEstado(c.estado)}</td>
-                    <td><strong>Q ${parseFloat(c.total).toFixed(2)}</strong></td>
-                    <td>${c.nombre_usuario || '—'}</td>
-                    <td style="text-align:center;">
-                        <button class="btn-accion btn-view" onclick="verCotizacion(${c.id_cotizacion})">👁 Ver</button>
-                        ${esPendiente ? `
-                        <button class="btn-accion btn-accept" onclick="cambiarEstadoCot(${c.id_cotizacion},'Aceptada')">✅ Aceptar</button>
-                        <button class="btn-accion btn-reject" onclick="cambiarEstadoCot(${c.id_cotizacion},'Rechazada')">❌ Rechazar</button>
-                        ` : ''}
-                        <button class="btn-accion btn-delete" onclick="eliminarCotizacion(${c.id_cotizacion})">🗑️</button>
-                    </td>
-                </tr>`;
-            });
-        }
-
-        function filtrarCotizaciones() {
-            const texto  = (document.getElementById('filtroCotizacion')?.value || '').toLowerCase();
-            const estado = document.getElementById('filtroEstadoCot')?.value || '';
-            const filtradas = todasLasCotizaciones.filter(c => {
-                const coincideTexto  = !texto  || (c.nombre_cliente && c.nombre_cliente.toLowerCase().includes(texto));
-                const coincideEstado = !estado || c.estado === estado;
-                return coincideTexto && coincideEstado;
-            });
-            renderizarCotizaciones(filtradas);
-        }
-
-        async function verCotizacion(id) {
-            try {
-                const res  = await fetch(`${API}/cotizaciones/${id}`, { headers: headers() });
-                const data = await res.json();
-                if (!data.exito) { alert('No se pudo cargar la cotización'); return; }
-                const c    = data.datos;
-                const fecha = new Date(c.fecha_emision).toLocaleDateString('es-GT');
-                let detalleHTML = '';
-                if (c.detalle && c.detalle.length) {
-                    c.detalle.forEach((d, i) => {
-                        detalleHTML += `
-                        <div class="detalle-item">
-                            <strong>Línea ${i+1}: ${d.tipo_trabajo}</strong>
-                            <div class="detalle-grid">
-                                <span>Cantidad: <b>${d.cantidad}</b></span>
-                                <span>Tamaño: <b>${d.tamano || '—'}</b></span>
-                                <span>Papel: <b>${d.nombre_papel || '—'}</b></span>
-                                <span>Acabado: <b>${d.nombre_acabado || '—'}</b></span>
-                                <span>Tinta est.: <b>${d.consumo_estimado_tinta || '—'}</b></span>
-                                <span>T. máquina: <b>${d.tiempo_estimado_maquina ? d.tiempo_estimado_maquina + ' min' : '—'}</b></span>
-                            </div>
-                            <div style="text-align:right; margin-top:6px; font-weight:700; color:#27ae60;">Subtotal: Q ${parseFloat(d.subtotal).toFixed(2)}</div>
-                        </div>`;
-                    });
                 } else {
-                    detalleHTML = '<p style="color:#7f8c8d;">Sin detalle registrado.</p>';
+                    mostrarNotificacion('Error: ' + data.mensaje, 'error');
                 }
-                document.getElementById('contenidoVerCotizacion').innerHTML = `
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; font-size:14px;">
-                        <div><b>Cliente:</b> ${c.nombre_cliente || '—'}</div>
-                        <div><b>Fecha:</b> ${fecha}</div>
-                        <div><b>Estado:</b> ${badgeEstado(c.estado)}</div>
-                        <div><b>Creada por:</b> ${c.nombre_usuario || '—'}</div>
-                        <div><b>Tipo cliente:</b> ${badgeTipo(c.tipo_cliente || 'Regular')}</div>
-                        <div><b>Descuento:</b> ${c.descuento_porcentaje || 0}%</div>
-                    </div>
-                    <hr style="border:none; border-top:1px solid #eee; margin-bottom:12px;">
-                    <strong style="display:block; margin-bottom:10px;">Detalle de trabajos:</strong>
-                    ${detalleHTML}
-                    <div style="text-align:right; margin-top:14px; font-size:18px; font-weight:700; color:#2c3e50;">
-                        TOTAL: Q ${parseFloat(c.total).toFixed(2)}
-                    </div>
-                `;
-                document.getElementById('modalVerCotizacion').style.display = 'flex';
-            } catch(e) { alert('Error de conexión'); }
+            } catch (e) {
+                mostrarNotificacion('Error de conexión', 'error');
+            }
         }
+    );
+}
 
-        async function cambiarEstadoCot(id, estado) {
-            if (!confirm(`¿Marcar esta cotización como "${estado}"?`)) return;
-            try {
-                const res  = await fetch(`${API}/cotizaciones/${id}/estado`, {
-                    method: 'PATCH',
-                    headers: headers(),
-                    body: JSON.stringify({ estado })
-                });
-                const data = await res.json();
-                if (data.exito) { cargarCotizaciones(); }
-                else alert('Error: ' + data.mensaje);
-            } catch(e) { alert('Error de conexión'); }
-        }
+document.getElementById('formCliente').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('clienteId').value;
+    const body = {
+        nombre:               document.getElementById('clienteNombre').value,
+        telefono:             document.getElementById('clienteTelefono').value,
+        correo:               document.getElementById('clienteCorreo').value,
+        nit_dpi:              document.getElementById('clienteNit').value,
+        tipo_cliente:         document.getElementById('clienteTipo').value,
+        descuento_porcentaje: parseFloat(document.getElementById('clienteDescuento').value)||0,
+        tipo_papel_preferido: document.getElementById('clientePapel').value,
+        diseno_frecuente:     document.getElementById('clienteDiseno').value,
+    };
+    try {
+        const url    = id ? `${API}/clientes/${id}` : `${API}/clientes`;
+        const method = id ? 'PUT' : 'POST';
+        const res    = await fetch(url,{method,headers:headers(),body:JSON.stringify(body)});
+        const data   = await res.json();
+            if (data.exito) { mostrarNotificacion(id?'Cliente actualizado':'Cliente registrado', 'success'); cerrarModal('modalCliente'); cargarClientes(); }
+            else mostrarNotificacion('Error: '+data.mensaje, 'error');
+        } catch(e){ mostrarNotificacion('Error de conexión', 'error'); }
+    });
 
-        async function eliminarCotizacion(id) {
-            if (!confirm(`¿Eliminar la cotización #${id}? Esta acción no se puede deshacer.`)) return;
-            try {
-                const res  = await fetch(`${API}/cotizaciones/${id}`, { method: 'DELETE', headers: headers() });
-                const data = await res.json();
-                if (data.exito) cargarCotizaciones();
-                else alert('Error: ' + data.mensaje);
-            } catch(e) { alert('Error de conexión'); }
-        }
+let todasCotizaciones = [];
+let catalogoCot = { preciosBase:[], insumos:[], maquinas:[] };
+let contLineas = 0;
+let cotActualParaPdf = null;
 
-        // ---- MODAL NUEVA COTIZACIÓN ----
-        async function abrirModalCotizacion() {
-            // Cargar lista de clientes en el select
-            try {
-                const res  = await fetch(`${API}/clientes`, { headers: headers() });
-                const data = await res.json();
-                const sel  = document.getElementById('cotCliente');
-                sel.innerHTML = '<option value="">Selecciona un cliente...</option>';
-                (data.datos || []).forEach(c => {
-                    sel.innerHTML += `<option value="${c.id_cliente}">${c.nombre} (${c.tipo_cliente})</option>`;
-                });
-            } catch(e) {}
+async function cargarCotizaciones() {
+    try {
+        const res  = await fetch(`${API}/cotizaciones`,{headers:headers()});
+        const data = await res.json();
+        todasCotizaciones = data.datos||[];
+        renderCotizaciones(todasCotizaciones);
 
-            // Limpiar detalle
-            contadorLineas = 0;
-            document.getElementById('contenedorDetalle').innerHTML = '';
-            document.getElementById('totalCotizacion').innerText = '0.00';
-            agregarLineaDetalle(); // Empezar con 1 línea vacía
-            document.getElementById('modalCotizacion').style.display = 'flex';
-        }
+        const t=todasCotizaciones.length,
+              pe=todasCotizaciones.filter(c=>c.estado==='Pendiente').length,
+              ac=todasCotizaciones.filter(c=>c.estado==='Aceptada').length,
+              re=todasCotizaciones.filter(c=>c.estado==='Rechazada').length,
+              tot=todasCotizaciones.reduce((s,c)=>s+parseFloat(c.total||0),0);
+        const el=document.getElementById('statsCotizaciones');
+        if (el) el.innerHTML=`
+            <div class="card-stat"><div class="numero">${t}</div><div class="etiqueta">Total</div></div>
+            <div class="card-stat"><div class="numero" style="color:#856404;">${pe}</div><div class="etiqueta">Pendientes</div></div>
+            <div class="card-stat"><div class="numero" style="color:#0f5132;">${ac}</div><div class="etiqueta">Aceptadas</div></div>
+            <div class="card-stat"><div class="numero" style="color:#842029;">${re}</div><div class="etiqueta">Rechazadas</div></div>
+            <div class="card-stat"><div class="numero" style="color:#1a5276;font-size:18px;">Q${tot.toFixed(2)}</div><div class="etiqueta">Valor total</div></div>`;
+    } catch(e) {
+        const el=document.getElementById('tablaCotBody');
+        if (el) el.innerHTML='<tr><td colspan="7" style="color:red;text-align:center;">Error al cargar</td></tr>';
+    }
+}
 
-        function agregarLineaDetalle() {
-            contadorLineas++;
-            const id = contadorLineas;
-            const div = document.createElement('div');
-            div.id = `linea-${id}`;
-            div.style.cssText = 'background:#f8f9fa; border-radius:8px; padding:14px; margin-bottom:10px; position:relative;';
-            div.innerHTML = `
-                <button type="button" onclick="eliminarLinea(${id})" style="position:absolute;top:8px;right:8px;background:#e74c3c;color:white;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;">×</button>
-                <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:10px;">
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size:12px;">Tipo de trabajo *</label>
-                        <input type="text" id="tt-${id}" placeholder="Ej. Impresión full color" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;" required>
-                    </div>
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size:12px;">Cantidad *</label>
-                        <input type="number" id="cant-${id}" min="1" value="1" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;" oninput="recalcularTotal()">
-                    </div>
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size:12px;">Tamaño</label>
-                        <input type="text" id="tam-${id}" placeholder="Ej. Carta" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;">
-                    </div>
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size:12px;">Consumo tinta</label>
-                        <input type="text" id="tinta-${id}" placeholder="Ej. 200ml" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;">
-                    </div>
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size:12px;">Tiempo máquina (min)</label>
-                        <input type="number" id="tiem-${id}" min="0" placeholder="Ej. 60" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;">
-                    </div>
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size:12px;">Subtotal (Q) *</label>
-                        <input type="number" id="sub-${id}" min="0" step="0.01" placeholder="0.00" style="width:100%; padding:6px; border:1px solid #ddd; border-radius:4px;" oninput="recalcularTotal()" required>
-                    </div>
+function renderCotizaciones(lista) {
+    const tbody = document.getElementById('tablaCotBody');
+    if (!tbody) return;
+    tbody.innerHTML='';
+    if (!lista.length){tbody.innerHTML='<tr><td colspan="6" class="loading">No hay cotizaciones.</td></tr>';return;}
+    lista.forEach(c=>{
+        const fecha = new Date(c.fecha_emision).toLocaleDateString('es-GT');
+        const esPend = c.estado==='Pendiente';
+        tbody.innerHTML+=`<tr>
+            <td>${c.nombre_cliente||'—'}</td>
+            <td>${fecha}</td>
+            <td>${badgeEstado(c.estado)}</td>
+            <td><strong>Q ${parseFloat(c.total).toFixed(2)}</strong></td>
+            <td>${c.nombre_usuario||'—'}</td>
+            <td style="text-align:center;">
+                <button class="btn-accion btn-view" onclick="verCotizacion(${c.id_cotizacion})">👁 Ver</button>
+                ${esPend?`
+                <button class="btn-accion btn-accept" onclick="cambiarEstado(${c.id_cotizacion},'Aceptada')">✅</button>
+                <button class="btn-accion btn-reject" onclick="cambiarEstado(${c.id_cotizacion},'Rechazada')">❌</button>`:''}
+                <button class="btn-accion btn-delete" onclick="eliminarCotizacion(${c.id_cotizacion})">🗑️</button>
+            </td>
+        </tr>`;
+    });
+}
+
+function filtrarCotizaciones() {
+    const txt    = (document.getElementById('filtroCot')?.value||'').toLowerCase();
+    const estado = document.getElementById('filtroEstadoCot')?.value||'';
+    renderCotizaciones(todasCotizaciones.filter(c=>
+        (!txt    || (c.nombre_cliente&&c.nombre_cliente.toLowerCase().includes(txt))) &&
+        (!estado || c.estado===estado)
+    ));
+}
+
+// ---- TABS cliente nuevo / existente ----
+function switchTab(tipo) {
+    document.getElementById('panelExistente').style.display = tipo==='existente'?'block':'none';
+    document.getElementById('panelNuevo').style.display     = tipo==='nuevo'?'block':'none';
+    document.getElementById('tabExistente').classList.toggle('activo', tipo==='existente');
+    document.getElementById('tabNuevo').classList.toggle('activo',     tipo==='nuevo');
+}
+
+async function abrirModalCotizacion() {
+    // Cargar catálogo unificado
+    try {
+        const res  = await fetch(`${API}/cotizaciones/catalogo`,{headers:headers()});
+        const data = await res.json();
+        if (data.exito) catalogoCot = data.datos;
+    } catch(e){}
+
+    // Cargar lista de clientes
+    try {
+        const res  = await fetch(`${API}/clientes`,{headers:headers()});
+        const data = await res.json();
+        const sel  = document.getElementById('cotCliente');
+        sel.innerHTML='<option value="">Selecciona un cliente...</option>';
+        (data.datos||[]).forEach(c=>{
+            sel.innerHTML+=`<option value="${c.id_cliente}">${c.nombre} (${c.tipo_cliente})</option>`;
+        });
+    } catch(e){}
+
+    // Reset Formulario
+    switchTab('existente');
+    contLineas=0;
+    document.getElementById('contenedorDetalle').innerHTML='';
+    document.getElementById('totalCot').innerText='0.00';
+    document.getElementById('formCotizacion').reset();
+    agregarLinea();
+    document.getElementById('modalCotizacion').style.display='flex';
+}
+
+function agregarLinea() {
+    contLineas++;
+    const id = contLineas;
+    
+    // Opciones de Trabajo Base
+    let opcionesTrabajo = '<option value="">Selecciona trabajo base (Catálogo)...</option>';
+    if(catalogoCot.preciosBase) {
+        catalogoCot.preciosBase.forEach(pb => {
+            opcionesTrabajo += `<option value="${pb.id_precio}" data-precio="${pb.precio_unitario}" data-tipo="${pb.tipo_trabajo}" data-tamano="${pb.tamano || ''}" data-idpapel="${pb.id_papel || ''}">
+                ${pb.tipo_trabajo} ${pb.tamano ? '('+pb.tamano+')' : ''} — Q${parseFloat(pb.precio_unitario).toFixed(2)}
+            </option>`;
+        });
+    }
+
+    // Separar Tintas de los demás Acabados/Insumos
+    let opcionesAcabado = '<option value="">Sin acabado extra</option>';
+    let opcionesTinta = '<option value="">Sin tinta extra</option>';
+    
+    if(catalogoCot.insumos) {
+        catalogoCot.insumos.forEach(ins => {
+            if(ins.categoria.toLowerCase().includes('tinta')) {
+                opcionesTinta += `<option value="${ins.id_insumo}" data-precio="${ins.precio_venta}">${ins.nombre} — Q${parseFloat(ins.precio_venta).toFixed(2)}</option>`;
+            } else {
+                opcionesAcabado += `<option value="${ins.id_insumo}" data-precio="${ins.precio_venta}">${ins.nombre} — +Q${parseFloat(ins.precio_venta).toFixed(2)}</option>`;
+            }
+        });
+    }
+
+    // Opciones de Máquinas
+    let opcionesMaquina = '<option value="">Selecciona máquina de producción...</option>';
+    if(catalogoCot.maquinas) {
+        catalogoCot.maquinas.forEach(maq => {
+            const precioHora = maq.precio_por_hora || 0;
+            opcionesMaquina += `<option value="${maq.id_maquina}" data-precio="${precioHora}">${maq.nombre} (Q${parseFloat(precioHora).toFixed(2)}/h)</option>`;
+        });
+    }
+
+    const div = document.createElement('div');
+    div.id='ln-'+id;
+    div.className='linea-detalle';
+    div.style.cssText = 'background:#f8f9fa; border-radius:8px; padding:14px; margin-bottom:15px; position:relative; border: 1px solid #e0e0e0;';
+    div.innerHTML=`
+        <button type="button" class="btn-remove" onclick="quitarLinea(${id})" style="position:absolute;top:8px;right:8px;background:#e74c3c;color:white;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer; font-weight:bold; display:flex; align-items:center; justify-content:center;">×</button>
+        
+        <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:10px; margin-bottom: 10px;">
+            <div class="form-group" style="margin:0;">
+                <label style="font-size:12px; color:#2980b9; font-weight:bold;">1. Trabajo Base (Papel) *</label>
+                <select id="tt-${id}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" onchange="autocompletarPrecio(${id})" required>${opcionesTrabajo}</select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label style="font-size:12px; color:#2980b9; font-weight:bold;">2. Acabado Extra</label>
+                <select id="ins-${id}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" onchange="autocompletarPrecio(${id})">${opcionesAcabado}</select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label style="font-size:12px; color:#27ae60; font-weight:bold;">Cantidad *</label>
+                <input type="number" id="cant-${id}" min="1" value="1" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" oninput="autocompletarPrecio(${id})">
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:2fr 1fr 2fr 1fr; gap:10px; background:#fff; padding:10px; border-radius:6px; border: 1px dashed #ccc; margin-bottom:10px;">
+            <div class="form-group" style="margin:0;">
+                <label style="font-size:12px; color:#8e44ad; font-weight:bold;">3. Máquina a usar</label>
+                <select id="maq-${id}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" onchange="autocompletarPrecio(${id})">${opcionesMaquina}</select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label style="font-size:12px;">Horas Uso</label>
+                <input type="number" id="tiem-${id}" min="0" step="0.5" placeholder="0" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" oninput="autocompletarPrecio(${id})">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label style="font-size:12px; color:#c0392b; font-weight:bold;">4. Tinta Requerida</label>
+                <select id="tinta-${id}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" onchange="autocompletarPrecio(${id})">${opcionesTinta}</select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label style="font-size:12px;">Cant. Tinta</label>
+                <input type="number" id="cantTinta-${id}" min="0" step="0.1" placeholder="0" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" oninput="autocompletarPrecio(${id})">
+            </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; background:#e8f8f5; padding:8px 12px; border-radius:6px; border:1px solid #a3e4d7;">
+            <div id="autoInfo-${id}" class="precio-auto" style="font-size:12px; color:#16a085; font-weight:500;">Elija un trabajo base para iniciar el cálculo matemático...</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label style="font-size:13px; font-weight:bold; color:#2c3e50; margin:0;">Subtotal Línea (Q):</label>
+                <input type="number" id="sub-${id}" min="0" step="0.01" placeholder="0.00" oninput="recalcularTotal()" style="width:120px; padding:6px; border:2px solid #27ae60; border-radius:4px; font-weight:bold; font-size:15px; color:#2c3e50; background:#fff; text-align:right;" readonly required>
+            </div>
+        </div>
+    `;
+    document.getElementById('contenedorDetalle').appendChild(div);
+}
+
+function quitarLinea(id) {
+    const el=document.getElementById('ln-'+id);
+    if (el) el.remove();
+    recalcularTotal();
+}
+
+// Fórmula de Imprenta Avanzada Integrada en Cascada
+function autocompletarPrecio(id) {
+    const selectTrabajo = document.getElementById(`tt-${id}`);
+    const selectAcabado = document.getElementById(`ins-${id}`);
+    const selectMaquina = document.getElementById(`maq-${id}`);
+    const inputTiempo   = document.getElementById(`tiem-${id}`);
+    const selectTinta   = document.getElementById(`tinta-${id}`);
+    const inputTinta    = document.getElementById(`cantTinta-${id}`);
+    const inputCantidad = document.getElementById(`cant-${id}`);
+    const inputSubtotal = document.getElementById(`sub-${id}`);
+    const info          = document.getElementById(`autoInfo-${id}`);
+
+    if (!selectTrabajo || !inputSubtotal) return;
+
+    if (selectTrabajo.selectedIndex <= 0) {
+        inputSubtotal.value = "0.00";
+        if (info) info.innerHTML = "Elija un trabajo base para iniciar el cálculo matemático...";
+        recalcularTotal();
+        return;
+    }
+
+    const optT = selectTrabajo.options[selectTrabajo.selectedIndex];
+    const precioBase = parseFloat(optT.dataset.precio) || 0;
+
+    const precioAcabado = (selectAcabado && selectAcabado.selectedIndex > 0) ? parseFloat(selectAcabado.options[selectAcabado.selectedIndex].dataset.precio) || 0 : 0;
+    const cantidad = parseInt(inputCantidad.value) || 0;
+    
+    // 1. Costo proporcional por volumen impreso (Papel + Acabado Extra)
+    const costoUnitarioTotal = (precioBase + precioAcabado) * cantidad;
+
+    // 2. Costos operacionales globales del tiraje (Horas máquina + Cantidad tinta)
+    const precioHoraMaq = (selectMaquina && selectMaquina.selectedIndex > 0) ? parseFloat(selectMaquina.options[selectMaquina.selectedIndex].dataset.precio) || 0 : 0;
+    const horasMaq = parseFloat(inputTiempo.value) || 0;
+    const costoMaquinaGlobal = precioHoraMaq * horasMaq;
+
+    const precioTinta = (selectTinta && selectTinta.selectedIndex > 0) ? parseFloat(selectTinta.options[selectTinta.selectedIndex].dataset.precio) || 0 : 0;
+    const cantTinta = parseFloat(inputTinta.value) || 0;
+    const costoTintaGlobal = precioTinta * cantTinta;
+
+    // Cálculo final aplicando sumatoria de costos de producción
+    const subtotal = costoUnitarioTotal + costoMaquinaGlobal + costoTintaGlobal;
+    
+    inputSubtotal.value = subtotal.toFixed(2);
+    
+    if (info) {
+        info.innerHTML = `✅ Base: Q${(precioBase*cantidad).toFixed(2)} | Extras + Máquina + Tinta: Q${(precioAcabado*cantidad + costoMaquinaGlobal + costoTintaGlobal).toFixed(2)}`;
+    }
+    recalcularTotal();
+}
+
+function recalcularTotal() {
+    let total=0;
+    document.querySelectorAll('[id^="sub-"]').forEach(i=>{ total+=parseFloat(i.value)||0; });
+    const el=document.getElementById('totalCot');
+    if (el) el.innerText=total.toFixed(2);
+}
+
+document.getElementById('formCotizacion').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const tabActiva = document.getElementById('tabNuevo').classList.contains('activo') ? 'nuevo' : 'existente';
+    const id_cliente = tabActiva==='existente' ? document.getElementById('cotCliente').value : null;
+    const cliente_nuevo = tabActiva==='nuevo' ? {
+        nombre:               document.getElementById('nuevoNombre').value,
+        telefono:             document.getElementById('nuevoTelefono').value,
+        correo:               document.getElementById('nuevoCorreo').value,
+        nit_dpi:              document.getElementById('nuevoNit').value,
+        tipo_cliente:         document.getElementById('nuevoTipo').value,
+        tipo_papel_preferido: document.getElementById('nuevoPapel').value,
+        diseno_frecuente:     document.getElementById('nuevoDiseno').value,
+    } : null;
+
+    if (tabActiva==='existente' && !id_cliente) { mostrarNotificacion('Selecciona un cliente', 'warning'); return; }
+    if (tabActiva==='nuevo' && !cliente_nuevo.nombre) { mostrarNotificacion('Ingresa el nombre del cliente', 'warning'); return; }
+
+    const lineas = document.querySelectorAll('[id^="ln-"]');
+    const detalle = [];
+    let valido = true;
+    
+    lineas.forEach(ln=>{
+        const lid = ln.id.split('-')[1];
+        const selT = document.getElementById(`tt-${lid}`);
+        
+        if (!selT || selT.selectedIndex <= 0) { valido = false; return; }
+        
+        const optT = selT.options[selT.selectedIndex];
+        const tipo_trabajo = optT.dataset.tipo;
+        const tamano = optT.dataset.tamano || null;
+        const id_papel = optT.dataset.idpapel ? parseInt(optT.dataset.idpapel) : null;
+        
+        const cantidad = parseInt(document.getElementById(`cant-${lid}`)?.value) || 0;
+        const id_acabado = document.getElementById(`ins-${lid}`)?.value ? parseInt(document.getElementById(`ins-${lid}`).value) : null;
+        
+        const inTinta = document.getElementById(`cantTinta-${lid}`);
+        const inTiempo = document.getElementById(`tiem-${lid}`);
+        const consumo_estimado_tinta = inTinta ? parseFloat(inTinta.value) || 0 : 0;
+        const tiempo_estimado_maquina = inTiempo ? parseFloat(inTiempo.value) || 0 : 0;
+        
+        const subtotal = parseFloat(document.getElementById(`sub-${lid}`)?.value) || 0;
+        
+        if (!tipo_trabajo || cantidad < 1 || subtotal <= 0) { valido = false; return; }
+        const id_maquina = document.getElementById(`maq-${lid}`)?.value ? parseInt(document.getElementById(`maq-${lid}`).value) : null;
+        const id_tinta = document.getElementById(`tinta-${lid}`)?.value ? parseInt(document.getElementById(`tinta-${lid}`).value) : null;
+
+        detalle.push({
+            tipo_trabajo,
+            cantidad,
+            tamano,
+            id_papel,
+            id_acabado,
+            consumo_estimado_tinta,
+            tiempo_estimado_maquina,
+            id_maquina,
+            id_tinta,
+            subtotal
+        });
+    });
+
+    if (!valido || detalle.length === 0) { mostrarNotificacion('Completa todos los campos obligatorios del detalle.', 'warning'); return; }
+
+    try {
+        const body = { id_cliente: id_cliente || null, cliente_nuevo, detalle };
+        const res  = await fetch(`${API}/cotizaciones`, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+        const data = await res.json();
+        if (data.exito) {
+            mostrarNotificacion(`Cotización #${data.id_cotizacion} creada correctamente!`, 'success');
+            cerrarModal('modalCotizacion');
+            cargarCotizaciones();
+        } else mostrarNotificacion('Error: ' + data.mensaje, 'error');
+    } catch(e) { mostrarNotificacion('Error de conexión', 'error'); }
+});
+
+async function verCotizacion(id) {
+    try {
+        const res  = await fetch(`${API}/cotizaciones/${id}`,{headers:headers()});
+        const data = await res.json();
+        if (!data.exito){ mostrarNotificacion('No se pudo cargar', 'error'); return; }
+        const c=data.datos;
+        cotActualParaPdf=c;
+        const fecha=new Date(c.fecha_emision).toLocaleDateString('es-GT');
+        let detalleHtml='';
+        (c.detalle||[]).forEach((d,i)=>{
+            detalleHtml+=`
+            <div style="background:#f8f9fa;border-radius:6px;padding:12px;margin-bottom:8px;font-size:13px;">
+                <strong style="display:block;margin-bottom:6px;">Línea ${i+1}: ${d.tipo_trabajo}</strong>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;">
+                    <span>Cantidad: <b>${d.cantidad}</b></span>
+                    <span>Tamaño: <b>${d.tamano||'—'}</b></span>
+                    <span>Papel Base: <b>${d.nombre_papel||'—'}</b></span>
+                    <span>Acabado: <b>${d.nombre_insumo||'—'}</b></span>
+                    <span>Consumo Tinta: <b>${d.consumo_estimado_tinta ? d.consumo_estimado_tinta : '0'} unit.</b></span>
+                    <span>Tiempo Máquina: <b>${d.tiempo_estimado_maquina ? d.tiempo_estimado_maquina+' h' : '0 h'}</b></span>
                 </div>
-            `;
-            document.getElementById('contenedorDetalle').appendChild(div);
+                <div style="text-align:right;margin-top:8px;font-weight:700;color:#27ae60;font-size:14px;">Subtotal: Q ${parseFloat(d.subtotal).toFixed(2)}</div>
+            </div>`;
+        });
+        document.getElementById('contenidoVerCot').innerHTML=`
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;font-size:13px;">
+                <div><b>Cliente:</b> ${c.nombre_cliente||'—'}</div>
+                <div><b>Fecha:</b> ${fecha}</div>
+                <div><b>Estado:</b> ${badgeEstado(c.estado)}</div>
+                <div><b>Creada por:</b> ${c.nombre_usuario||'—'}</div>
+                <div><b>Tipo cliente:</b> ${badgeTipo(c.tipo_cliente||'Regular')}</div>
+                <div><b>Descuento:</b> ${c.descuento_porcentaje||0}%</div>
+                <div><b>Teléfono:</b> ${c.telefono_cliente||'—'}</div>
+                <div><b>NIT/DPI:</b> ${c.nit_dpi||'—'}</div>
+            </div>
+            <hr style="border:none;border-top:1px solid #eee;margin-bottom:12px;">
+            <strong style="display:block;margin-bottom:10px;font-size:14px;">Detalle de trabajos:</strong>
+            ${detalleHtml}
+            <div style="text-align:right;margin-top:14px;font-size:18px;font-weight:700;color:#2c3e50;">
+                TOTAL: Q ${parseFloat(c.total).toFixed(2)}
+            </div>
+        `;
+        document.getElementById('modalVerCot').style.display='flex';
+    } catch(e){mostrarNotificacion('Error de conexión', 'error');}
+}
+
+// ---- GENERAR PDF ----
+document.getElementById('btnDescargarPdf').addEventListener('click', () => {
+    if (!cotActualParaPdf) return;
+    const c = cotActualParaPdf;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const fecha = new Date(c.fecha_emision).toLocaleDateString('es-GT');
+
+    // Encabezado
+    doc.setFillColor(44, 62, 80);
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica','bold');
+    doc.text('SAI Imprenta', 14, 13);
+    doc.setFontSize(11);
+    doc.setFont('helvetica','normal');
+    doc.text(`COTIZACIÓN #${c.id_cotizacion}`, 14, 23);
+
+    // Info cotización
+    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(10);
+    let y = 40;
+    doc.setFont('helvetica','bold'); doc.text('DATOS DEL CLIENTE', 14, y); y+=6;
+    doc.setFont('helvetica','normal');
+    doc.text(`Cliente: ${c.nombre_cliente||'—'}`, 14, y); y+=5;
+    doc.text(`Teléfono: ${c.telefono_cliente||'—'}`, 14, y);
+    doc.text(`Correo: ${c.correo_cliente||'—'}`, 110, y); y+=5;
+    doc.text(`NIT/DPI: ${c.nit_dpi||'—'}`, 14, y);
+    doc.text(`Fecha: ${fecha}`, 110, y); y+=5;
+    doc.text(`Estado: ${c.estado}`, 14, y);
+    doc.text(`Tipo cliente: ${c.tipo_cliente||'Regular'}`, 110, y); y+=10;
+
+    // Tabla detalle
+    doc.setFillColor(44, 62, 80);
+    doc.rect(14, y, 182, 7, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text('Trabajo', 16, y+5);
+    doc.text('Cant.', 80, y+5);
+    doc.text('Tamaño', 100, y+5);
+    doc.text('Acabado', 130, y+5);
+    doc.text('Subtotal', 170, y+5);
+    y+=9;
+
+    doc.setTextColor(40,40,40);
+    doc.setFont('helvetica','normal');
+    let zebra=false;
+    (c.detalle||[]).forEach(d=>{
+        if (y>270){doc.addPage();y=20;}
+        if (zebra){doc.setFillColor(245,247,249);doc.rect(14,y-1,182,7,'F');}
+        zebra=!zebra;
+        doc.text(String(d.tipo_trabajo).substring(0,30), 16, y+4);
+        doc.text(String(d.cantidad), 80, y+4);
+        doc.text(String(d.tamano||'—'), 100, y+4);
+        doc.text(String(d.nombre_insumo||'—').substring(0,18), 130, y+4);
+        doc.text(`Q ${parseFloat(d.subtotal).toFixed(2)}`, 170, y+4);
+        y+=7;
+    });
+
+    // Total
+    y+=4;
+    doc.setFillColor(39,174,96);
+    doc.rect(130, y, 66, 9, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text(`TOTAL: Q ${parseFloat(c.total).toFixed(2)}`, 133, y+6.5);
+
+    // Pie
+    doc.setTextColor(150,150,150);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.text(`Generado por SAI Imprenta — ${new Date().toLocaleString('es-GT')}`, 14, 288);
+
+    doc.save(`Cotizacion_${c.id_cotizacion}_${c.nombre_cliente||'cliente'}.pdf`);
+});
+
+async function cambiarEstado(id, estado) {
+    try {
+        const res  = await fetch(`${API}/cotizaciones/${id}/estado`,{method:'PATCH',headers:headers(),body:JSON.stringify({estado})});
+        const data = await res.json();
+        if (data.exito) {
+            mostrarNotificacion(`Cotización #${id} actualizada a ${estado}`, 'success');
+            cargarCotizaciones();
+        } else mostrarNotificacion('Error: '+data.mensaje, 'error');
+    } catch(e){ mostrarNotificacion('Error de conexión', 'error'); }
+}
+
+async function eliminarCotizacion(id) {
+    try {
+        const res  = await fetch(`${API}/cotizaciones/${id}`,{method:'DELETE',headers:headers()});
+        const data = await res.json();
+        if (data.exito) {
+            mostrarNotificacion(`Cotización #${id} eliminada`, 'success');
+            cargarCotizaciones();
+        } else mostrarNotificacion('Error: '+data.mensaje, 'error');
+    } catch(e){ mostrarNotificacion('Error de conexión', 'error'); }
+}
+
+// =====================================================
+//  PRODUCCIÓN
+// =====================================================
+let produccionActual = null;
+let temporizadorProduccion = null;
+
+async function cargarProduccion() {
+    try {
+        const res = await fetch(`${API}/produccion`, { headers: headers() });
+        const data = await res.json();
+        const lista = data.datos || [];
+        renderProduccion(lista);
+        const pendientes = lista.filter(o => o.estado === 'Pendiente').length;
+        const atrasados = lista.filter(o => o.estado === 'En Proceso' && o.fecha_limite && new Date(o.fecha_limite) < new Date());
+        if (atrasados.length) {
+            mostrarNotificacion('⚠️ Hay órdenes de producción atrasadas.', 'warning', 6000);
         }
+        const proceso = lista.filter(o => o.estado === 'En Proceso').length;
+        const detenidos = lista.filter(o => o.estado === 'Detenido').length;
+        const el = document.getElementById('statsProduccion');
+        if (el) el.innerHTML = `
+            <div class="card-stat"><div class="numero">${lista.length}</div><div class="etiqueta">Total</div></div>
+            <div class="card-stat"><div class="numero" style="color:#856404;">${pendientes}</div><div class="etiqueta">Pendientes</div></div>
+            <div class="card-stat"><div class="numero" style="color:#0f5132;">${proceso}</div><div class="etiqueta">En proceso</div></div>
+            <div class="card-stat"><div class="numero" style="color:#842029;">${detenidos}</div><div class="etiqueta">Detenidos</div></div>`;
+    } catch (e) {
+        const el = document.getElementById('tablaProduccionBody');
+        if (el) el.innerHTML = '<tr><td colspan="6" style="color:red;text-align:center;">Error al cargar</td></tr>';
+    }
+}
 
-        function eliminarLinea(id) {
-            const el = document.getElementById(`linea-${id}`);
-            if (el) el.remove();
-            recalcularTotal();
+function renderProduccion(lista) {
+    const tbody = document.getElementById('tablaProduccionBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay órdenes de producción.</td></tr>'; return; }
+
+    lista.forEach(o => {
+        const estado = o.estado || 'Pendiente';
+        const fechaLimite = o.fecha_limite ? new Date(o.fecha_limite).toLocaleString('es-GT') : 'Sin límite';
+        const tiempo = o.tiempo_estimado_horas ? `${parseFloat(o.tiempo_estimado_horas).toFixed(2)} h` : '0 h';
+        const avance = estado === 'En Proceso' ? 'En curso' : (estado === 'Detenido' ? 'Detenido' : 'Por iniciar');
+        const atrasado = estado === 'En Proceso' && o.fecha_limite && new Date(o.fecha_limite) < new Date();
+        tbody.innerHTML += `<tr>
+            <td>${o.cliente_nombre || '—'}</td>
+            <td>${estado}${atrasado ? ' ⚠️' : ''}</td>
+            <td>${tiempo}</td>
+            <td>${fechaLimite}</td>
+            <td>${avance}</td>
+            <td style="text-align:center;">
+                <button class="btn-accion btn-view" onclick="verOrdenProduccion(${o.id_orden})">👁 Ver</button>
+                ${[1,3].includes(rolID) && o.estado === 'Pendiente' ? `<button class="btn-accion btn-accept" onclick="cambiarEstadoProduccion(${o.id_orden}, 'En Proceso')">▶️ Iniciar</button>` : ''}
+                ${[1,3].includes(rolID) && o.estado === 'En Proceso' ? `<button class="btn-accion btn-reject" onclick="mostrarModalDetencion(${o.id_orden})">⏸️ Detener</button><button class="btn-accion btn-edit" onclick="cambiarEstadoProduccion(${o.id_orden}, 'Completado')">✅ Completar</button>` : ''}
+                ${[1,3].includes(rolID) && o.estado === 'Detenido' ? `<button class="btn-accion btn-accept" onclick="cambiarEstadoProduccion(${o.id_orden}, 'En Proceso')">▶️ Reanudar</button><button class="btn-accion btn-edit" onclick="cambiarEstadoProduccion(${o.id_orden}, 'Completado')">✅ Completar</button>` : ''}
+            </td>
+        </tr>`;
+    });
+}
+
+async function verOrdenProduccion(id) {
+    try {
+        const res = await fetch(`${API}/produccion/${id}`, { headers: headers() });
+        const data = await res.json();
+        if (!data.exito) { mostrarNotificacion('No se pudo cargar la orden', 'error'); return; }
+        const o = data.datos;
+        produccionActual = o;
+        const detalle = o.detalle ? JSON.parse(o.detalle) : [];
+        const listaDetalle = detalle.length ? detalle.map((d, i) => `<li><strong>${d.tipo_trabajo}</strong> · Cantidad ${d.cantidad} · Tinta ${d.consumo_estimado_tinta || 0} · Tiempo ${d.tiempo_estimado_maquina || 0} h</li>`).join('') : '<li>Sin detalle</li>';
+        const comentarios = (o.comentarios || []).map(c => `<div style="padding:8px;border-bottom:1px solid #eee;"><strong>${c.nombre_usuario || 'Usuario'}</strong><div>${c.mensaje}</div><small>${new Date(c.fecha_creacion).toLocaleString('es-GT')}</small></div>`).join('');
+        const contenido = `
+            <div style="display:grid;gap:10px;">
+                <div><strong>Cliente:</strong> ${o.cliente_nombre || '—'}</div>
+                <div><strong>Estado:</strong> ${o.estado}</div>
+                <div><strong>Trabajo base:</strong> ${o.trabajo_base || '—'}</div>
+                <div><strong>Tiempo estimado:</strong> ${parseFloat(o.tiempo_estimado_horas || 0).toFixed(2)} h</div>
+                <div><strong>Fecha creación:</strong> ${formatoFecha(o.fecha_creacion)}</div>
+                <div><strong>Fecha inicio:</strong> ${formatoFecha(o.fecha_inicio)}</div>
+                <div><strong>Fecha límite:</strong> ${formatoFecha(o.fecha_limite)}</div>
+                <div><strong>Fecha fin:</strong> ${formatoFecha(o.fecha_fin)}</div>
+                <div><strong>Duración real:</strong> ${calcularDuracion(o.fecha_inicio, o.fecha_fin)}</div>
+                <div id="contadorProduccion-${id}"><strong>Temporizador:</strong> calculando...</div>
+                <div><strong>Máquina:</strong> ${o.maquina || '—'}</div>
+                <div><strong>Tinta:</strong> ${o.tinta || '—'} · ${parseFloat(o.cantidad_tinta || 0).toFixed(2)} unit.</div>
+                <div><strong>Comentario estado:</strong> ${o.comentario_estado || '—'}</div>
+                ${o.motivo_detencion ? `<div><strong>Motivo de detención:</strong> ${o.motivo_detencion}</div>` : ''}
+                <ul>${listaDetalle}</ul>
+                <div style="border-top:1px solid #eee;padding-top:10px;">
+                    <strong>Chat de seguimiento</strong>
+                    <div style="max-height:220px;overflow:auto;margin-top:8px;">${comentarios || '<p>No hay comentarios aún.</p>'}</div>
+                </div>
+                ${[1,2,3].includes(rolID) ? '<div><strong>Agregar comentario</strong><textarea id="nuevoComentarioProd" style="width:100%;margin-top:6px;min-height:70px;"></textarea><button class="btn-primary" onclick="agregarComentarioProduccion('+id+')" style="margin-top:8px;">Enviar comentario</button></div>' : ''}
+            </div>`;
+        document.getElementById('modalProdDetalle')?.remove();
+        document.getElementById('contenedorVistas').innerHTML += `<div id="modalProdDetalle" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:9999;"><div style="background:white; width:min(700px, 92vw); max-height:88vh; overflow:auto; border-radius:10px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.2);">${contenido}<div style="margin-top:12px;text-align:right;"><button class="btn-primary" style="background:#95a5a6;" onclick="cerrarModalDetalleProduccion()">Cerrar</button></div></div></div>`;
+        if (temporizadorProduccion) {
+            clearInterval(temporizadorProduccion);
+            temporizadorProduccion = null;
         }
+        const updateTimer = () => {
+            const el = document.getElementById(`contadorProduccion-${id}`);
+            if (!el) return;
 
-        function recalcularTotal() {
-            let total = 0;
-            document.querySelectorAll('[id^="sub-"]').forEach(input => {
-                total += parseFloat(input.value) || 0;
-            });
-            const el = document.getElementById('totalCotizacion');
-            if (el) el.innerText = total.toFixed(2);
-        }
-
-        document.getElementById('formCotizacion').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id_cliente = document.getElementById('cotCliente').value;
-            if (!id_cliente) { alert('Selecciona un cliente'); return; }
-
-            // Recolectar detalle
-            const lineas = document.querySelectorAll('[id^="linea-"]');
-            const detalle = [];
-            let valido = true;
-            lineas.forEach(linea => {
-                const lineaId = linea.id.split('-')[1];
-                const tipo_trabajo = document.getElementById(`tt-${lineaId}`)?.value;
-                const cantidad     = parseInt(document.getElementById(`cant-${lineaId}`)?.value) || 0;
-                const tamano       = document.getElementById(`tam-${lineaId}`)?.value;
-                const consumo_estimado_tinta   = document.getElementById(`tinta-${lineaId}`)?.value;
-                const tiempo_estimado_maquina  = parseInt(document.getElementById(`tiem-${lineaId}`)?.value) || null;
-                const subtotal     = parseFloat(document.getElementById(`sub-${lineaId}`)?.value) || 0;
-                if (!tipo_trabajo || cantidad < 1 || subtotal <= 0) { valido = false; return; }
-                detalle.push({ tipo_trabajo, cantidad, tamano, consumo_estimado_tinta, tiempo_estimado_maquina, subtotal });
-            });
-
-            if (!valido || detalle.length === 0) {
-                alert('Por favor completa todos los campos obligatorios en el detalle (tipo de trabajo, cantidad y subtotal).');
+            if (o.estado === 'Completado' && o.fecha_fin) {
+                el.innerHTML = `<strong>Temporizador:</strong> Finalizado (${calcularDuracion(o.fecha_inicio, o.fecha_fin)})`;
+                clearInterval(temporizadorProduccion);
+                temporizadorProduccion = null;
                 return;
             }
 
-            try {
-                const res  = await fetch(`${API}/cotizaciones`, {
-                    method: 'POST',
-                    headers: headers(),
-                    body: JSON.stringify({ id_cliente, detalle })
-                });
-                const data = await res.json();
-                if (data.exito) {
-                    alert(`¡Cotización #${data.id_cotizacion} creada correctamente!`);
-                    cerrarModal('modalCotizacion');
-                    cargarCotizaciones();
-                } else { alert('Error: ' + data.mensaje); }
-            } catch(e) { alert('Error de conexión al servidor'); }
-        });
+            if (!o.fecha_inicio || !o.tiempo_estimado_horas) {
+                el.innerHTML = '<strong>Temporizador:</strong> No iniciado';
+                return;
+            }
+            const inicio = parseLocalDatetime(o.fecha_inicio);
+            const horasEstimadas = parseFloat(o.tiempo_estimado_horas || 0);
+            if (!inicio || Number.isNaN(horasEstimadas) || horasEstimadas <= 0) {
+                el.innerHTML = '<strong>Temporizador:</strong> No iniciado';
+                return;
+            }
+            const limite = new Date(inicio.getTime() + horasEstimadas * 3600000);
+            const diff = limite.getTime() - Date.now();
+            const negativo = diff < 0;
+            const abs = Math.abs(diff);
+            const h = Math.floor(abs / 3600000);
+            const m = Math.floor((abs % 3600000) / 60000);
+            const s = Math.floor((abs % 60000) / 1000);
+            el.innerHTML = negativo
+                ? `<strong style="color:#c0392b;">Temporizador:</strong> -${h}h ${m}m ${s}s (excedido)`
+                : `<strong>Temporizador:</strong> ${h}h ${m}m ${s}s`;
+        };
 
-        // ======================================================
-        //  USUARIOS (funciones existentes)
-        // ======================================================
-        function mostrarModalUsuario() {
-            document.getElementById('formCrearUsuario').reset();
-            document.getElementById('modalCrear').style.display = 'flex';
+        updateTimer();
+        temporizadorProduccion = setInterval(updateTimer, 1000);
+    } catch (e) {
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+}
+
+function cerrarModalDetalleProduccion() {
+    const el = document.getElementById('modalProdDetalle');
+    if (el) el.remove();
+}
+
+async function cambiarEstadoProduccion(id, estado, motivo = '') {
+    try {
+        if (estado === 'Detenido' && !motivo) {
+            mostrarNotificacion('Debes indicar el motivo para detener la producción.', 'warning');
+            return;
         }
+        const res = await fetch(`${API}/produccion/${id}/estado`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ estado, comentario: motivo, motivo }) });
+        const data = await res.json();
+        if (data.exito) {
+            mostrarNotificacion(`Estado actualizado a ${estado}`, 'success');
+            cargarProduccion();
+            cerrarModalDetalleProduccion();
+        } else mostrarNotificacion('Error: ' + data.mensaje, 'error');
+    } catch (e) { mostrarNotificacion('Error de conexión', 'error'); }
+}
 
-        function editarUsuario(id, nombreActual) {
-            document.getElementById('editUserId').value = id;
-            document.getElementById('editUserName').value = nombreActual;
-            document.getElementById('editUserRole').value = '';
-            document.getElementById('modalEditar').style.display = 'flex';
+function mostrarModalDetencion(id) {
+    const contenido = `
+        <div id="modalDetencion" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:9999;">
+            <div style="background:white; width:min(460px, 90vw); border-radius:10px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.2);">
+                <h3 style="margin:0 0 12px;font-size:18px;">⏸️ Detener producción</h3>
+                <p style="margin:0 0 12px; color:#333;">Indica el motivo de la detención antes de continuar.</p>
+                <textarea id="motivoDetencionInput" style="width:100%;height:120px;padding:10px;border:1px solid #ddd;border-radius:8px;resize:none;margin-bottom:12px;"></textarea>
+                <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button class="btn-primary" style="background:#95a5a6;" onclick="document.getElementById('modalDetencion')?.remove()">Cancelar</button>
+                    <button class="btn-primary" style="background:#e67e22;" onclick="(function(){ const motivo=document.getElementById('motivoDetencionInput').value.trim(); if(!motivo){ mostrarNotificacion('El motivo es obligatorio.', 'warning'); return; } cambiarEstadoProduccion(${id}, 'Detenido', motivo); document.getElementById('modalDetencion')?.remove(); })()">Confirmar detención</button>
+                </div>
+            </div>
+        </div>`;
+    document.body.insertAdjacentHTML('beforeend', contenido);
+}
+
+async function agregarComentarioProduccion(id) {
+    const campo = document.getElementById('nuevoComentarioProd');
+    const mensaje = campo?.value?.trim();
+    if (!mensaje) return mostrarNotificacion('Escribe un comentario', 'warning');
+    try {
+        const res = await fetch(`${API}/produccion/${id}/comentarios`, { method: 'POST', headers: headers(), body: JSON.stringify({ mensaje }) });
+        const data = await res.json();
+        if (data.exito) {
+            mostrarNotificacion('Comentario enviado', 'success');
+            if (campo) campo.value = '';
+            verOrdenProduccion(id);
+        } else {
+            mostrarNotificacion('Error: ' + data.mensaje, 'error');
         }
+    } catch (e) {
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+}
 
-        function resetearClave(id) {
-            document.getElementById('formResetPassword').reset();
-            document.getElementById('resetUserId').value = id;
-            document.getElementById('modalPassword').style.display = 'flex';
+// =====================================================
+//  USUARIOS
+// =====================================================
+function mostrarModalUsuario(){document.getElementById('formCrearUsuario').reset();document.getElementById('modalCrear').style.display='flex';}
+function editarUsuario(id,n){document.getElementById('editUserId').value=id;document.getElementById('editUserName').value=n;document.getElementById('editUserRole').value='';document.getElementById('modalEditar').style.display='flex';}
+function resetearClave(id){document.getElementById('formResetPassword').reset();document.getElementById('resetUserId').value=id;document.getElementById('modalPassword').style.display='flex';}
+
+async function desactivarUsuario(id){
+    try{const res=await fetch(`${API}/usuarios/${id}/estado`,{method:'PATCH',headers:headers()});const data=await res.json();if(data.exito){mostrarNotificacion('Usuario desactivado', 'success');cargarVista('usuarios');}else mostrarNotificacion('Error: '+data.mensaje, 'error');}catch(e){mostrarNotificacion('Error de conexión', 'error');}
+}
+
+document.getElementById('formCrearUsuario').addEventListener('submit',async(e)=>{
+    e.preventDefault();
+    const body={
+        nombre_completo:document.getElementById('crearUserName').value,
+        correo:document.getElementById('crearUserEmail').value,
+        password:document.getElementById('crearUserPass').value,
+        id_rol:document.getElementById('crearUserRole').value
+    };
+    try {
+        const res=await fetch(`${API}/auth/registrar`, {
+            method:'POST',
+            headers:headers(),
+            body:JSON.stringify(body)
+        });
+        const data=await res.json();
+        if(data.exito){
+            mostrarNotificacion('Usuario creado', 'success');
+            cerrarModal('modalCrear');
+            cargarVista('usuarios');
+        } else mostrarNotificacion('Error: '+data.mensaje, 'error');
+    } catch(e) {
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+});
+
+document.getElementById('formEditarUsuario').addEventListener('submit',async(e)=>{
+    e.preventDefault();
+    const id=document.getElementById('editUserId').value;
+    const body={nombre_completo:document.getElementById('editUserName').value,id_rol:document.getElementById('editUserRole').value};
+    try {
+        const res = await fetch(`${API}/usuarios/${id}`, { method:'PUT', headers:headers(), body:JSON.stringify(body) });
+        const data = await res.json();
+        if (data.exito) {
+            mostrarNotificacion('¡Actualizado!', 'success');
+            cerrarModal('modalEditar');
+            cargarVista('usuarios');
+        } else {
+            mostrarNotificacion('Error: ' + data.mensaje, 'error');
         }
+    } catch (e) {
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+});
 
-        async function desactivarUsuario(id) {
-            if (!confirm('¿Desactivar a este usuario?')) return;
-            try {
-                const res = await fetch(`${API}/usuarios/${id}/estado`, { method: 'PATCH', headers: headers() });
-                const data = await res.json();
-                if (data.exito) { alert('Usuario desactivado'); cargarVista('usuarios'); }
-                else alert('Error: ' + data.mensaje);
-            } catch(e) { alert('Error de conexión'); }
-        }
+document.getElementById('formResetPassword').addEventListener('submit',async(e)=>{
+    e.preventDefault();
+    const id=document.getElementById('resetUserId').value;
+    const body={nuevaPassword:document.getElementById('resetUserPass').value};
+    try{const res=await fetch(`${API}/usuarios/${id}/password`,{method:'PATCH',headers:headers(),body:JSON.stringify(body)});const data=await res.json();if(data.exito){mostrarNotificacion('Contraseña actualizada', 'success');cerrarModal('modalPassword');}else mostrarNotificacion('Error: '+data.mensaje, 'error');}catch(e){mostrarNotificacion('Error de conexión', 'error');}
+});
 
-        document.getElementById('formCrearUsuario').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const body = {
-                nombre_completo: document.getElementById('crearUserName').value,
-                correo:    document.getElementById('crearUserEmail').value,
-                password:  document.getElementById('crearUserPass').value,
-                id_rol:    document.getElementById('crearUserRole').value
-            };
-            try {
-                const res  = await fetch(`${API}/auth/registro`, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
-                const data = await res.json();
-                if (data.exito) { alert('¡Usuario creado!'); cerrarModal('modalCrear'); cargarVista('usuarios'); }
-                else alert('Error: ' + data.mensaje);
-            } catch(e) { alert('Error de conexión'); }
-        });
-
-        document.getElementById('formEditarUsuario').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('editUserId').value;
-            const body = {
-                nombre_completo: document.getElementById('editUserName').value,
-                id_rol: document.getElementById('editUserRole').value
-            };
-            try {
-                const res  = await fetch(`${API}/usuarios/${id}`, { method: 'PUT', headers: headers(), body: JSON.stringify(body) });
-                const data = await res.json();
-                if (data.exito) { alert('¡Usuario actualizado!'); cerrarModal('modalEditar'); cargarVista('usuarios'); }
-                else alert('Error: ' + data.mensaje);
-            } catch(e) { alert('Error de conexión'); }
-        });
-
-        document.getElementById('formResetPassword').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('resetUserId').value;
-            const body = { nuevaPassword: document.getElementById('resetUserPass').value };
-            try {
-                const res  = await fetch(`${API}/usuarios/${id}/password`, { method: 'PATCH', headers: headers(), body: JSON.stringify(body) });
-                const data = await res.json();
-                if (data.exito) { alert('¡Contraseña actualizada!'); cerrarModal('modalPassword'); }
-                else alert('Error: ' + data.mensaje);
-            } catch(e) { alert('Error de conexión'); }
-        });
-
-        // Cerrar sesión
-        document.getElementById('btnCerrarSesion').addEventListener('click', () => {
-            localStorage.removeItem('token');
-            window.location.href = 'login.html';
-        });
-    </script>
+document.getElementById('btnCerrarSesion').addEventListener('click',()=>{localStorage.removeItem('token');window.location.href='login.html';});
+</script>
 </body>
 </html>

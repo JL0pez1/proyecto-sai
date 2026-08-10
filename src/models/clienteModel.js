@@ -92,7 +92,7 @@ const actualizarCliente = async (id, datos) => {
     return result.affectedRows > 0;
 };
 
-// Eliminar cliente
+/** Eliminar cliente usar este 
 const eliminarCliente = async (id) => {
     const [result] = await db.query(
         'DELETE FROM clientes WHERE id_cliente = ?',
@@ -100,7 +100,24 @@ const eliminarCliente = async (id) => {
     );
     return result.affectedRows > 0;
 };
+*/
 
+
+// Eliminar cliente para pruebas
+const eliminarCliente = async (id) => {
+    // 1. Desvincular primero las cotizaciones de este cliente (poner id_cliente en NULL)
+    await db.query(
+        'UPDATE cotizaciones SET id_cliente = NULL WHERE id_cliente = ?',
+        [id]
+    );
+
+    // 2. Ahora que no hay dependencias, borramos al cliente con seguridad
+    const [result] = await db.query(
+        'DELETE FROM clientes WHERE id_cliente = ?',
+        [id]
+    );
+    return result.affectedRows > 0;
+};
 module.exports = {
     obtenerClientes,
     obtenerClientePorId,

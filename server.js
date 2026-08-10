@@ -7,6 +7,7 @@ const app = express();
 // Middlewares base
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
 // Conexión a la base de datos
 const db = require('./src/config/db');
@@ -19,6 +20,7 @@ const authRoutes        = require('./src/routes/authRoutes');
 const insumoRoutes      = require('./src/routes/insumoRoutes');
 const clienteRoutes     = require('./src/routes/clienteRoutes');
 const cotizacionRoutes  = require('./src/routes/cotizacionRoutes'); // NUEVO
+const produccionRoutes  = require('./src/routes/produccionRoutes');
 
 // ==========================================
 // USO DE RUTAS (Endpoints)
@@ -28,6 +30,7 @@ app.use('/api/auth',         authRoutes);
 app.use('/api/insumos',      insumoRoutes);
 app.use('/api/clientes',     clienteRoutes);
 app.use('/api/cotizaciones', cotizacionRoutes); // NUEVO
+app.use('/api/produccion',   produccionRoutes);
 
 // Ruta de prueba base
 app.get('/', (req, res) => {
