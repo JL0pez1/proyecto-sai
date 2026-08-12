@@ -1,6 +1,6 @@
 const cotizacionModel = require('../models/cotizacionModel');
 const clienteModel    = require('../models/clienteModel');
-const produccionModel = require('../models/produccionModel');
+const ordenesProduccionController = require('./ordenesProduccionController');
 
 const listarCotizaciones = async (req, res) => {
     try {
@@ -114,6 +114,14 @@ const cambiarEstado = async (req, res) => {
     }
 
     try {
+        const cotizacionActual = await cotizacionModel.obtenerCotizacionPorId(id);
+        if (!cotizacionActual) return res.status(404).json({ exito: false, mensaje: 'Cotización no encontrada' });
+
+        const rolUsuario = req.usuario?.id_rol;
+        if (cotizacionActual.estado === 'Aceptada' && ![1, 3].includes(rolUsuario)) {
+            return res.status(403).json({ exito: false, mensaje: 'Solo admin o producción pueden modificar una cotización aceptada' });
+        }
+
         if (estado === 'Aceptada') {
             const validacion = await cotizacionModel.validarAceptacion(id);
             if (!validacion.ok) {
@@ -126,12 +134,10 @@ const cambiarEstado = async (req, res) => {
 
         // Si se acepta, recalculamos de inmediato el nivel comercial del cliente y se crea la orden de producción
         if (estado === 'Aceptada') {
-            const cotizacion = await cotizacionModel.obtenerCotizacionPorId(id);
-            if (cotizacion && cotizacion.id_cliente) {
-                await cotizacionModel.actualizarNivelCliente(cotizacion.id_cliente);
+            if (cotizacionActual && cotizacionActual.id_cliente) {
+                await cotizacionModel.actualizarNivelCliente(cotizacionActual.id_cliente);
             }
-            await produccionModel.inicializarTablas();
-            await produccionModel.crearDesdeCotizacion(id);
+            await ordenesProduccionController.crearDesdeCotizacion(id);
         }
 
         res.status(200).json({ exito: true, mensaje: `Cotización marcada como: ${estado}` });

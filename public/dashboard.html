@@ -277,21 +277,100 @@ if (rolID === 1) {
     //htmlMenu += `<li><a href="#" onclick="cargarVista('insumos')">📦 Gestión de Insumos</a></li>`;
     htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
     htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
-    htmlMenu += `<li><a href="#" onclick="cargarVista('produccion')">🏭 Producción</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('controlTiempos')">⏱️ Control de tiempos</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('seguimientoImpresiones')">📌 Seguimiento de impresiones</a></li>`;
 } else if (rolID === 2) {
     htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
     htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
-    htmlMenu += `<li><a href="#" onclick="cargarVista('produccion')">🏭 Producción</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('controlTiempos')">⏱️ Control de tiempos</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('seguimientoImpresiones')">📌 Seguimiento de impresiones</a></li>`;
 } else if (rolID === 3) {
-    htmlMenu += `<li><a href="#" onclick="cargarVista('produccion')">🏭 Producción</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('controlTiempos')">⏱️ Control de tiempos</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('seguimientoImpresiones')">📌 Seguimiento de impresiones</a></li>`;
 } else {
     htmlMenu += `<li><a href="#">⚠️ Rol no reconocido</a></li>`;
-}
+} 
 menuLateral.innerHTML = htmlMenu;
 
 // ===== HELPERS =====
 function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
 function cerrarCualquierModal(id) { cerrarModal(id); }
+function cerrarModalDetalleProduccion() {
+    const detalle = document.getElementById('modalProdDetalle');
+    if (detalle) detalle.remove();
+    if (cronometroInterval) {
+        clearInterval(cronometroInterval);
+        cronometroInterval = null;
+    }
+}
+
+function mostrarModalInput(titulo, placeholder, onAceptar, onCancelar = () => {}) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.display = 'flex';
+    overlay.innerHTML = `
+        <div class="modal-content" style="max-width:460px;">
+            <h3>${titulo}</h3>
+            <textarea id="modalInputTexto" placeholder="${placeholder}" style="width:100%;min-height:120px;padding:10px;border:1px solid #ddd;border-radius:8px;margin-top:12px;box-sizing:border-box;"></textarea>
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
+                <button type="button" class="btn-primary" style="background:#95a5a6;">Cancelar</button>
+                <button type="button" class="btn-primary" style="background:#3498db;">Aceptar</button>
+            </div>
+        </div>
+    `;
+    const buttons = overlay.querySelectorAll('button');
+    buttons[0].addEventListener('click', () => {
+        overlay.remove();
+        onCancelar();
+    });
+    buttons[1].addEventListener('click', () => {
+        const texto = overlay.querySelector('#modalInputTexto').value.trim();
+        overlay.remove();
+        onAceptar(texto);
+    });
+    document.body.appendChild(overlay);
+}
+
+function actualizarContadorOrdenProd() {
+    const el = document.getElementById('tiempoRestanteProduccion');
+    if (!el || !produccionActual) return;
+    const segundosEstimados = Math.round((produccionActual.comparativo?.tiempo_estimado_horas || 0) * 3600);
+    const segundosReales = calcularSegundosTotalesTiempos(produccionActual.tiempos || []);
+    if (segundosEstimados === 0) {
+        el.textContent = 'Sin estimado disponible';
+        el.style.color = '#2c3e50';
+        return;
+    }
+    const diferencia = segundosEstimados - segundosReales;
+    const texto = `${diferencia < 0 ? '-' : ''}${formatearDuracion(Math.abs(diferencia))} ${diferencia < 0 ? 'atraso' : 'restante'}`;
+    el.textContent = texto;
+    el.style.color = diferencia < 0 ? '#c0392b' : '#2c3e50';
+}
+
+function enviarComentario(id) {
+    const textarea = document.getElementById('nuevoComentario');
+    if (!textarea) return;
+    const mensaje = textarea.value.trim();
+    if (!mensaje) {
+        mostrarNotificacion('Escribe un comentario antes de enviar', 'warning');
+        return;
+    }
+    fetch(`${API}/ordenes-produccion/${id}/comentarios`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ mensaje })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.exito) {
+            mostrarNotificacion('Comentario enviado', 'success');
+            verOrdenProduccion(id);
+        } else {
+            mostrarNotificacion('Error: ' + data.mensaje, 'error');
+        }
+    })
+    .catch(() => mostrarNotificacion('Error de conexión', 'error'));
+}
 
 function badgeEstado(e) {
     const m = { Pendiente:'badge-pendiente', Aceptada:'badge-aceptada', Rechazada:'badge-rechazada' };
@@ -479,18 +558,47 @@ async function cargarVista(modulo) {
             </table>`;
         await cargarCotizaciones();
 
-    } else if (modulo === 'produccion') {
-        titulo.innerText = '🏭 Producción';
+    } else if (modulo === 'controlTiempos') {
+        titulo.innerText = '⏱️ Control de tiempos';
         contenedor.innerHTML = `
             <div class="modulo-header">
-                <h3>Órdenes de Producción</h3>
+                <h3>Control de tiempos</h3>
             </div>
             <div class="cards-row" id="statsProduccion"></div>
+            <div class="filtros-row">
+                <input type="text" id="filtroOrdenes" placeholder="🔍 Buscar cliente, estado o prioridad..." oninput="filtrarOrdenes()" style="flex:1;min-width:220px;">
+                <select id="filtroPrioridad" onchange="filtrarOrdenes()">
+                    <option value="">Todas las prioridades</option>
+                    <option value="Urgente">Urgente</option>
+                    <option value="Normal">Normal</option>
+                </select>
+                <select id="filtroEstadoOrden" onchange="filtrarOrdenes()">
+                    <option value="">Todos los estados</option>
+                    <option value="Confirmado">Confirmado</option>
+                    <option value="En producción">En producción</option>
+                    <option value="Terminado">Terminado</option>
+                    <option value="Entregado">Entregado</option>
+                </select>
+            </div>
             <table class="tabla-sai">
-                <thead><tr><th>Cliente</th><th>Estado</th><th>Tiempo estimado</th><th>Fecha límite</th><th>Avance</th><th style="text-align:center;">Acciones</th></tr></thead>
+                <thead><tr><th>Cliente</th><th>Estado</th><th>Prioridad</th><th>Entrega</th><th>Tiempo real</th><th style="text-align:center;">Acciones</th></tr></thead>
                 <tbody id="tablaProduccionBody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+            </table>
+            <div id="notificacionesProduccion" style="margin-top:20px;"></div>`;
+        await actualizarProduccion();
+        await cargarNotificacionesProduccion();
+    } else if (modulo === 'seguimientoImpresiones') {
+        titulo.innerText = '📌 Seguimiento de impresiones';
+        contenedor.innerHTML = `
+            <div class="modulo-header">
+                <h3>Seguimiento de impresiones</h3>
+            </div>
+            <div class="cards-row" id="statsSeguimiento"></div>
+            <table class="tabla-sai">
+                <thead><tr><th>Orden</th><th>Cliente</th><th>Estado</th><th>Máquina</th><th>Operador</th><th>Entrega</th><th style="text-align:center;">Ver</th></tr></thead>
+                <tbody id="tablaSeguimientoBody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
             </table>`;
-        await cargarProduccion();
+        await actualizarProduccion();
     } else if (modulo === 'insumos') {
         titulo.innerText = '📦 Gestión de Insumos';
         contenedor.innerHTML = '<p>Próximamente: Módulo de Inventario e Insumos</p>';
@@ -1098,31 +1206,43 @@ async function eliminarCotizacion(id) {
 //  PRODUCCIÓN
 // =====================================================
 let produccionActual = null;
-let temporizadorProduccion = null;
+let cronometroInterval = null;
 
-async function cargarProduccion() {
+let ordenesProduccionCache = [];
+
+async function actualizarProduccion() {
     try {
-        const res = await fetch(`${API}/produccion`, { headers: headers() });
+        const res = await fetch(`${API}/ordenes-produccion`, { headers: headers() });
         const data = await res.json();
-        const lista = data.datos || [];
-        renderProduccion(lista);
-        const pendientes = lista.filter(o => o.estado === 'Pendiente').length;
-        const atrasados = lista.filter(o => o.estado === 'En Proceso' && o.fecha_limite && new Date(o.fecha_limite) < new Date());
-        if (atrasados.length) {
-            mostrarNotificacion('⚠️ Hay órdenes de producción atrasadas.', 'warning', 6000);
-        }
-        const proceso = lista.filter(o => o.estado === 'En Proceso').length;
-        const detenidos = lista.filter(o => o.estado === 'Detenido').length;
-        const el = document.getElementById('statsProduccion');
-        if (el) el.innerHTML = `
-            <div class="card-stat"><div class="numero">${lista.length}</div><div class="etiqueta">Total</div></div>
-            <div class="card-stat"><div class="numero" style="color:#856404;">${pendientes}</div><div class="etiqueta">Pendientes</div></div>
-            <div class="card-stat"><div class="numero" style="color:#0f5132;">${proceso}</div><div class="etiqueta">En proceso</div></div>
-            <div class="card-stat"><div class="numero" style="color:#842029;">${detenidos}</div><div class="etiqueta">Detenidos</div></div>`;
+        ordenesProduccionCache = data.datos || [];
+        renderProduccion(ordenesProduccionCache);
+        renderSeguimiento(ordenesProduccionCache);
+        renderStatsProduccion(ordenesProduccionCache);
     } catch (e) {
-        const el = document.getElementById('tablaProduccionBody');
-        if (el) el.innerHTML = '<tr><td colspan="6" style="color:red;text-align:center;">Error al cargar</td></tr>';
+        const tbody = document.getElementById('tablaProduccionBody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="color:red;text-align:center;">Error al cargar</td></tr>';
+        const tbody2 = document.getElementById('tablaSeguimientoBody');
+        if (tbody2) tbody2.innerHTML = '<tr><td colspan="7" style="color:red;text-align:center;">Error al cargar</td></tr>';
     }
+}
+
+function renderStatsProduccion(lista) {
+    const el = document.getElementById('statsProduccion');
+    if (!el) return;
+    const total = lista.length;
+    const confirmadas = lista.filter(o => o.estado_actual === 'Confirmado').length;
+    const enProduccion = lista.filter(o => o.estado_actual === 'En producción').length;
+    const terminadas = lista.filter(o => o.estado_actual === 'Terminado').length;
+    const entregadas = lista.filter(o => o.estado_actual === 'Entregado').length;
+    const urgentes = lista.filter(o => o.prioridad === 'Urgente').length;
+
+    el.innerHTML = `
+        <div class="card-stat"><div class="numero">${total}</div><div class="etiqueta">Total</div></div>
+        <div class="card-stat"><div class="numero" style="color:#856404;">${confirmadas}</div><div class="etiqueta">Confirmadas</div></div>
+        <div class="card-stat"><div class="numero" style="color:#0f5132;">${enProduccion}</div><div class="etiqueta">En producción</div></div>
+        <div class="card-stat"><div class="numero" style="color:#842029;">${terminadas}</div><div class="etiqueta">Terminadas</div></div>
+        <div class="card-stat"><div class="numero" style="color:#1a5276;">${entregadas}</div><div class="etiqueta">Entregadas</div></div>
+        <div class="card-stat"><div class="numero" style="color:#c0392b;">${urgentes}</div><div class="etiqueta">Urgentes</div></div>`;
 }
 
 function renderProduccion(lista) {
@@ -1132,153 +1252,266 @@ function renderProduccion(lista) {
     if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay órdenes de producción.</td></tr>'; return; }
 
     lista.forEach(o => {
-        const estado = o.estado || 'Pendiente';
-        const fechaLimite = o.fecha_limite ? new Date(o.fecha_limite).toLocaleString('es-GT') : 'Sin límite';
-        const tiempo = o.tiempo_estimado_horas ? `${parseFloat(o.tiempo_estimado_horas).toFixed(2)} h` : '0 h';
-        const avance = estado === 'En Proceso' ? 'En curso' : (estado === 'Detenido' ? 'Detenido' : 'Por iniciar');
-        const atrasado = estado === 'En Proceso' && o.fecha_limite && new Date(o.fecha_limite) < new Date();
+        const fechaEntrega = o.fecha_entrega_estimada ? new Date(o.fecha_entrega_estimada).toLocaleDateString('es-GT') : 'Sin fecha';
+        const tiempoReal = o.tiempo_real_invertido != null ? `${o.tiempo_real_invertido} min` : '0 min';
         tbody.innerHTML += `<tr>
             <td>${o.cliente_nombre || '—'}</td>
-            <td>${estado}${atrasado ? ' ⚠️' : ''}</td>
-            <td>${tiempo}</td>
-            <td>${fechaLimite}</td>
-            <td>${avance}</td>
+            <td>${o.estado_actual || '—'}</td>
+            <td>${o.prioridad || 'Normal'}</td>
+            <td>${fechaEntrega}</td>
+            <td>${tiempoReal}</td>
             <td style="text-align:center;">
                 <button class="btn-accion btn-view" onclick="verOrdenProduccion(${o.id_orden})">👁 Ver</button>
-                ${[1,3].includes(rolID) && o.estado === 'Pendiente' ? `<button class="btn-accion btn-accept" onclick="cambiarEstadoProduccion(${o.id_orden}, 'En Proceso')">▶️ Iniciar</button>` : ''}
-                ${[1,3].includes(rolID) && o.estado === 'En Proceso' ? `<button class="btn-accion btn-reject" onclick="mostrarModalDetencion(${o.id_orden})">⏸️ Detener</button><button class="btn-accion btn-edit" onclick="cambiarEstadoProduccion(${o.id_orden}, 'Completado')">✅ Completar</button>` : ''}
-                ${[1,3].includes(rolID) && o.estado === 'Detenido' ? `<button class="btn-accion btn-accept" onclick="cambiarEstadoProduccion(${o.id_orden}, 'En Proceso')">▶️ Reanudar</button><button class="btn-accion btn-edit" onclick="cambiarEstadoProduccion(${o.id_orden}, 'Completado')">✅ Completar</button>` : ''}
             </td>
         </tr>`;
     });
 }
 
-async function verOrdenProduccion(id) {
+function renderSeguimiento(lista) {
+    const tbody = document.getElementById('tablaSeguimientoBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7" class="loading">No hay órdenes para seguimiento.</td></tr>'; return; }
+
+    lista.forEach(o => {
+        const fechaEntrega = o.fecha_entrega_estimada ? new Date(o.fecha_entrega_estimada).toLocaleDateString('es-GT') : 'Sin fecha';
+        const maquina = o.maquina_nombre || '—';
+        const operador = o.operador_nombre || '—';
+        tbody.innerHTML += `<tr>
+            <td>${o.id_orden}</td>
+            <td>${o.cliente_nombre || '—'}</td>
+            <td>${o.estado_actual || '—'}</td>
+            <td>${maquina}</td>
+            <td>${operador}</td>
+            <td>${fechaEntrega}</td>
+            <td style="text-align:center;"><button class="btn-accion btn-view" onclick="verOrdenProduccion(${o.id_orden})">👁 Ver</button></td>
+        </tr>`;
+    });
+}
+
+function filtrarOrdenes() {
+    const texto = (document.getElementById('filtroOrdenes')?.value || '').toLowerCase();
+    const prioridad = document.getElementById('filtroPrioridad')?.value || '';
+    const estado = document.getElementById('filtroEstadoOrden')?.value || '';
+    const filtradas = ordenesProduccionCache.filter(o => {
+        const textoConcatenado = `${o.cliente_nombre || ''} ${o.estado_actual || ''} ${o.prioridad || ''}`.toLowerCase();
+        return (!texto || textoConcatenado.includes(texto)) &&
+               (!prioridad || o.prioridad === prioridad) &&
+               (!estado || o.estado_actual === estado);
+    });
+    renderProduccion(filtradas);
+    renderSeguimiento(filtradas);
+}
+
+async function cargarNotificacionesProduccion() {
     try {
-        const res = await fetch(`${API}/produccion/${id}`, { headers: headers() });
+        const res = await fetch(`${API}/ordenes-produccion/notificaciones/mias`, { headers: headers() });
         const data = await res.json();
-        if (!data.exito) { mostrarNotificacion('No se pudo cargar la orden', 'error'); return; }
-        const o = data.datos;
-        produccionActual = o;
-        const detalle = o.detalle ? JSON.parse(o.detalle) : [];
-        const listaDetalle = detalle.length ? detalle.map((d, i) => `<li><strong>${d.tipo_trabajo}</strong> · Cantidad ${d.cantidad} · Tinta ${d.consumo_estimado_tinta || 0} · Tiempo ${d.tiempo_estimado_maquina || 0} h</li>`).join('') : '<li>Sin detalle</li>';
-        const comentarios = (o.comentarios || []).map(c => `<div style="padding:8px;border-bottom:1px solid #eee;"><strong>${c.nombre_usuario || 'Usuario'}</strong><div>${c.mensaje}</div><small>${new Date(c.fecha_creacion).toLocaleString('es-GT')}</small></div>`).join('');
-        const contenido = `
-            <div style="display:grid;gap:10px;">
-                <div><strong>Cliente:</strong> ${o.cliente_nombre || '—'}</div>
-                <div><strong>Estado:</strong> ${o.estado}</div>
-                <div><strong>Trabajo base:</strong> ${o.trabajo_base || '—'}</div>
-                <div><strong>Tiempo estimado:</strong> ${parseFloat(o.tiempo_estimado_horas || 0).toFixed(2)} h</div>
-                <div><strong>Fecha creación:</strong> ${formatoFecha(o.fecha_creacion)}</div>
-                <div><strong>Fecha inicio:</strong> ${formatoFecha(o.fecha_inicio)}</div>
-                <div><strong>Fecha límite:</strong> ${formatoFecha(o.fecha_limite)}</div>
-                <div><strong>Fecha fin:</strong> ${formatoFecha(o.fecha_fin)}</div>
-                <div><strong>Duración real:</strong> ${calcularDuracion(o.fecha_inicio, o.fecha_fin)}</div>
-                <div id="contadorProduccion-${id}"><strong>Temporizador:</strong> calculando...</div>
-                <div><strong>Máquina:</strong> ${o.maquina || '—'}</div>
-                <div><strong>Tinta:</strong> ${o.tinta || '—'} · ${parseFloat(o.cantidad_tinta || 0).toFixed(2)} unit.</div>
-                <div><strong>Comentario estado:</strong> ${o.comentario_estado || '—'}</div>
-                ${o.motivo_detencion ? `<div><strong>Motivo de detención:</strong> ${o.motivo_detencion}</div>` : ''}
-                <ul>${listaDetalle}</ul>
-                <div style="border-top:1px solid #eee;padding-top:10px;">
-                    <strong>Chat de seguimiento</strong>
-                    <div style="max-height:220px;overflow:auto;margin-top:8px;">${comentarios || '<p>No hay comentarios aún.</p>'}</div>
-                </div>
-                ${[1,2,3].includes(rolID) ? '<div><strong>Agregar comentario</strong><textarea id="nuevoComentarioProd" style="width:100%;margin-top:6px;min-height:70px;"></textarea><button class="btn-primary" onclick="agregarComentarioProduccion('+id+')" style="margin-top:8px;">Enviar comentario</button></div>' : ''}
-            </div>`;
-        document.getElementById('modalProdDetalle')?.remove();
-        document.getElementById('contenedorVistas').innerHTML += `<div id="modalProdDetalle" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:9999;"><div style="background:white; width:min(700px, 92vw); max-height:88vh; overflow:auto; border-radius:10px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.2);">${contenido}<div style="margin-top:12px;text-align:right;"><button class="btn-primary" style="background:#95a5a6;" onclick="cerrarModalDetalleProduccion()">Cerrar</button></div></div></div>`;
-        if (temporizadorProduccion) {
-            clearInterval(temporizadorProduccion);
-            temporizadorProduccion = null;
+        const lista = data.datos || [];
+        renderNotificacionesProduccion(lista);
+    } catch (e) {
+        const cont = document.getElementById('notificacionesProduccion');
+        if (cont) cont.innerHTML = '<div style="color:red;">Error al cargar notificaciones.</div>';
+    }
+}
+
+function renderNotificacionesProduccion(lista) {
+    const cont = document.getElementById('notificacionesProduccion');
+    if (!cont) return;
+    if (!lista.length) {
+        cont.innerHTML = '<div style="padding:14px;background:#f8f9fa;border-radius:8px;border:1px solid #e0e0e0;">No hay notificaciones nuevas.</div>';
+        return;
+    }
+    cont.innerHTML = `
+        <div style="margin-bottom:10px;font-weight:700;color:#2c3e50;">🔔 Notificaciones</div>
+        <div style="display:grid;gap:10px;">${lista.map(n => `
+            <div style="padding:12px;border-radius:8px;border:1px solid #e9ecef;background:${n.leida ? '#f5f5f5' : '#fff'};position:relative;">
+                <div style="font-size:13px;line-height:1.4;">${n.mensaje}</div>
+                <div style="margin-top:8px;font-size:11px;color:#7f8c8d;">${new Date(n.fecha_creacion).toLocaleString('es-GT')} ${n.leida ? '· Leída' : '· Nueva'}</div>
+                ${n.leida ? '' : `<button class="btn-accion btn-accept" style="position:absolute;top:12px;right:12px; padding:4px 8px;font-size:11px;" onclick="marcarNotificacionLeida(${n.id_notificacion})">Marcar leída</button>`}
+            </div>`).join('')}</div>`;
+}
+
+async function marcarNotificacionLeida(id) {
+    try {
+        const res = await fetch(`${API}/ordenes-produccion/notificaciones/${id}/leida`, { method: 'PATCH', headers: headers() });
+        const data = await res.json();
+        if (data.exito) {
+            mostrarNotificacion('Notificación marcada como leída', 'success');
+            cargarNotificacionesProduccion();
+        } else {
+            mostrarNotificacion('Error al marcar notificación', 'error');
         }
-        const updateTimer = () => {
-            const el = document.getElementById(`contadorProduccion-${id}`);
-            if (!el) return;
-
-            if (o.estado === 'Completado' && o.fecha_fin) {
-                el.innerHTML = `<strong>Temporizador:</strong> Finalizado (${calcularDuracion(o.fecha_inicio, o.fecha_fin)})`;
-                clearInterval(temporizadorProduccion);
-                temporizadorProduccion = null;
-                return;
-            }
-
-            if (!o.fecha_inicio || !o.tiempo_estimado_horas) {
-                el.innerHTML = '<strong>Temporizador:</strong> No iniciado';
-                return;
-            }
-            const inicio = parseLocalDatetime(o.fecha_inicio);
-            const horasEstimadas = parseFloat(o.tiempo_estimado_horas || 0);
-            if (!inicio || Number.isNaN(horasEstimadas) || horasEstimadas <= 0) {
-                el.innerHTML = '<strong>Temporizador:</strong> No iniciado';
-                return;
-            }
-            const limite = new Date(inicio.getTime() + horasEstimadas * 3600000);
-            const diff = limite.getTime() - Date.now();
-            const negativo = diff < 0;
-            const abs = Math.abs(diff);
-            const h = Math.floor(abs / 3600000);
-            const m = Math.floor((abs % 3600000) / 60000);
-            const s = Math.floor((abs % 60000) / 1000);
-            el.innerHTML = negativo
-                ? `<strong style="color:#c0392b;">Temporizador:</strong> -${h}h ${m}m ${s}s (excedido)`
-                : `<strong>Temporizador:</strong> ${h}h ${m}m ${s}s`;
-        };
-
-        updateTimer();
-        temporizadorProduccion = setInterval(updateTimer, 1000);
     } catch (e) {
         mostrarNotificacion('Error de conexión', 'error');
     }
 }
 
-function cerrarModalDetalleProduccion() {
-    const el = document.getElementById('modalProdDetalle');
-    if (el) el.remove();
+function calcularSegundosTotalesTiempos(tiempos) {
+    if (!Array.isArray(tiempos)) return 0;
+    const ahora = Date.now();
+    return tiempos.reduce((total, segmento) => {
+        const inicio = parseLocalDatetime(segmento.inicio);
+        const fin = segmento.fin ? parseLocalDatetime(segmento.fin) : new Date(ahora);
+        if (!inicio || !fin) return total;
+        return total + Math.max(0, (fin.getTime() - inicio.getTime()) / 1000);
+    }, 0);
 }
 
-async function cambiarEstadoProduccion(id, estado, motivo = '') {
+function formatearDuracion(segundos) {
+    const h = Math.floor(segundos / 3600);
+    const m = Math.floor((segundos % 3600) / 60);
+    const s = Math.floor(segundos % 60);
+    return `${h}h ${m}m ${s}s`;
+}
+
+async function verOrdenProduccion(id) {
     try {
-        if (estado === 'Detenido' && !motivo) {
-            mostrarNotificacion('Debes indicar el motivo para detener la producción.', 'warning');
+        const res = await fetch(`${API}/ordenes-produccion/${id}`, { headers: headers() });
+        const data = await res.json();
+        if (!data.exito) { mostrarNotificacion('No se pudo cargar la orden', 'error'); return; }
+        const o = data.datos;
+        produccionActual = o;
+        const listaDetalle = (o.detalle || []).length ? (o.detalle || []).map((d, i) => `<li><strong>${d.tipo_trabajo}</strong> · Cantidad ${d.cantidad} · Tiempo estimado ${d.tiempo_estimado_maquina || 0} h</li>`).join('') : '<li>Sin detalle</li>';
+        const segmentos = (o.tiempos || []).map(t => {
+            const inicio = formatoFecha(t.inicio);
+            const fin = t.fin ? formatoFecha(t.fin) : 'Activo';
+            return `<div style="padding:10px;border-bottom:1px solid #eee;"><strong>${t.estado}</strong> · ${t.usuario_nombre||'Usuario'}<br>${inicio} → ${fin}<br><small>${t.observaciones || ''}</small></div>`;
+        }).join('');
+        const historial = (o.historial || []).map(h => `<div style="padding:10px;border-bottom:1px solid #eee;"><strong>${h.estado_anterior || 'N/A'} → ${h.estado_nuevo}</strong><br>${formatoFecha(h.fecha_cambio)}<br><small>${h.usuario_nombre || 'Sistema'}</small></div>`).join('');
+        const comparativo = o.comparativo || {};
+        const tiempoReal = o.tiempo_real_invertido != null ? `${o.tiempo_real_invertido} min` : '0 min';
+        const inicioActivo = (o.tiempos || []).find(t => t.estado === 'Activo');
+        const tieneActivo = Boolean(inicioActivo);
+        const estado = o.estado_actual || '—';
+
+        const comentariosHtml = (o.comentarios || []).map(c => `
+                    <div style="padding:12px;border-bottom:1px solid #eee;">
+                        <strong>${c.nombre_usuario || 'Usuario'}</strong> <span style="color:#7f8c8d; font-size:12px;">${formatoFecha(c.fecha_creacion)}</span>
+                        <div style="margin-top:6px;line-height:1.5;">${c.mensaje}</div>
+                    </div>
+                `).join('') || '<div style="padding:10px;color:#7f8c8d;">No hay comentarios todavía.</div>';
+
+        const contenido = `
+            <div style="display:grid;gap:12px;max-width:760px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div><strong>Cliente:</strong> ${o.cliente_nombre || '—'}</div>
+                    <div><strong>Teléfono:</strong> ${o.cliente_telefono || '—'}</div>
+                    <div><strong>Estado:</strong> ${estado}</div>
+                    <div><strong>Prioridad:</strong> ${o.prioridad || 'Normal'}</div>
+                    <div><strong>Entrega estimada:</strong> ${formatoFecha(o.fecha_entrega_estimada)}</div>
+                    <div><strong>Tiempo real invertido:</strong> ${tiempoReal}</div>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                    ${estado === 'Confirmado' ? `<button class="btn-accion btn-accept" onclick="accionCronometro(${id}, 'iniciar')">▶️ Iniciar cronómetro</button>` : ''}
+                    ${estado === 'En producción' && tieneActivo ? `<button class="btn-accion btn-reject" onclick="accionCronometro(${id}, 'pausar')">⏸️ Pausar</button>` : ''}
+                    ${estado === 'En producción' && !tieneActivo ? `<button class="btn-accion btn-accept" onclick="accionCronometro(${id}, 'reanudar')">▶️ Reanudar</button>` : ''}
+                    ${estado === 'En producción' ? `<button class="btn-accion btn-edit" onclick="accionCronometro(${id}, 'finalizar')">✅ Finalizar</button>` : ''}
+                    ${estado === 'Terminado' ? `<button class="btn-accion btn-accept" onclick="accionOrdenEntregado(${id})">📦 Marcar entregado</button>` : ''}
+                </div>
+                <div style="padding:14px;background:#f8f9fa;border-radius:10px;border:1px solid #e1e1e1;display:flex;justify-content:space-between;align-items:center;">
+                    <div><strong>Tiempo estimado vs real</strong></div>
+                    <div id="tiempoRestanteProduccion" style="font-weight:700;color:#2c3e50;">Cargando...</div>
+                </div>
+                <div style="padding:14px;background:#f8f9fa;border-radius:10px;border:1px solid #e1e1e1;">
+                    <strong>Comparativo</strong>
+                    <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                        <div><strong>Estimado</strong><br>${comparativo.tiempo_estimado_horas || 0} h</div>
+                        <div><strong>Real</strong><br>${comparativo.tiempo_real_horas || 0} h</div>
+                        <div><strong>Diferencia</strong><br>${comparativo.diferencia_horas || 0} h</div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div style="background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:14px;">
+                        <strong>Detalle de impresión</strong>
+                        <ul style="margin-top:10px;">${listaDetalle}</ul>
+                    </div>
+                    <div style="background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:14px;">
+                        <strong>Segmentos de tiempo</strong>
+                        ${segmentos || '<div style="padding:10px;color:#7f8c8d;">No hay segmentos registrados.</div>'}
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div style="background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:14px;">
+                        <strong>Historial de estados</strong>
+                        ${historial || '<div style="padding:10px;color:#7f8c8d;">Aún no hay cambios de estado.</div>'}
+                    </div>
+                    <div style="background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:14px;">
+                        <strong>Último segmento activo</strong>
+                        <div style="margin-top:10px;">${tieneActivo ? `Desde ${formatoFecha(inicioActivo.inicio)}` : 'No hay segmento activo.'}</div>
+                    </div>
+                </div>
+                <div style="background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:14px;">
+                    <strong>Comentarios internos</strong>
+                    <div style="margin-top:10px;max-height:220px;overflow:auto;">${comentariosHtml}</div>
+                    <div style="margin-top:12px;display:grid;gap:10px;">
+                        <textarea id="nuevoComentario" placeholder="Escribe un comentario..." style="width:100%;min-height:80px;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;"></textarea>
+                        <button class="btn-primary" style="background:#3498db;align-self:flex-end;" onclick="enviarComentario(${id})">Enviar comentario</button>
+                    </div>
+                </div>
+            </div>`;
+
+        document.getElementById('modalProdDetalle')?.remove();
+        document.getElementById('contenedorVistas').innerHTML += `<div id="modalProdDetalle" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:9999;"><div style="background:white; width:min(820px, 94vw); max-height:92vh; overflow:auto; border-radius:10px; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,.2);">${contenido}<div style="margin-top:18px;text-align:right;"><button class="btn-primary" style="background:#95a5a6;" onclick="cerrarModalDetalleProduccion()">Cerrar</button></div></div></div>`;
+
+        if (cronometroInterval) {
+            clearInterval(cronometroInterval);
+            cronometroInterval = null;
+        }
+        actualizarContadorOrdenProd();
+        cronometroInterval = setInterval(actualizarContadorOrdenProd, 1000);
+    } catch (e) {
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+}
+
+async function accionCronometro(id, accion) {
+    try {
+        if (accion === 'pausar') {
+                mostrarModalInput('Motivo de pausa', 'Describe el motivo de la pausa...', async (motivo) => {
+                if (!motivo) {
+                    mostrarNotificacion('Debes escribir un motivo para pausar', 'warning');
+                    return;
+                }
+                const res = await fetch(`${API}/ordenes-produccion/${id}/cronometro/pausar`, { method: 'POST', headers: headers(), body: JSON.stringify({ motivo }) });
+                const data = await res.json();
+                if (data.exito) {
+                    mostrarNotificacion('Cronómetro pausado', 'success');
+                    actualizarProduccion();
+                    verOrdenProduccion(id);
+                } else {
+                    mostrarNotificacion('Error: ' + data.mensaje, 'error');
+                }
+            }, () => {
+                mostrarNotificacion('Pausa cancelada', 'info');
+            });
             return;
         }
-        const res = await fetch(`${API}/produccion/${id}/estado`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ estado, comentario: motivo, motivo }) });
-        const data = await res.json();
-        if (data.exito) {
-            mostrarNotificacion(`Estado actualizado a ${estado}`, 'success');
-            cargarProduccion();
-            cerrarModalDetalleProduccion();
-        } else mostrarNotificacion('Error: ' + data.mensaje, 'error');
-    } catch (e) { mostrarNotificacion('Error de conexión', 'error'); }
+        if (accion === 'iniciar' || accion === 'reanudar' || accion === 'finalizar') {
+            const endpoint = `${API}/ordenes-produccion/${id}/cronometro/${accion}`;
+            const res = await fetch(endpoint, { method: 'POST', headers: headers(), body: JSON.stringify({ observaciones: accion === 'iniciar' ? 'Inicio de producción' : undefined }) });
+            const data = await res.json();
+            if (data.exito) {
+                mostrarNotificacion(`Cronómetro ${accion}do`, 'success');
+                actualizarProduccion();
+                verOrdenProduccion(id);
+            } else {
+                mostrarNotificacion('Error: ' + data.mensaje, 'error');
+            }
+            return;
+        }
+    } catch (e) {
+        mostrarNotificacion('Error de conexión', 'error');
+    }
 }
 
-function mostrarModalDetencion(id) {
-    const contenido = `
-        <div id="modalDetencion" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:9999;">
-            <div style="background:white; width:min(460px, 90vw); border-radius:10px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.2);">
-                <h3 style="margin:0 0 12px;font-size:18px;">⏸️ Detener producción</h3>
-                <p style="margin:0 0 12px; color:#333;">Indica el motivo de la detención antes de continuar.</p>
-                <textarea id="motivoDetencionInput" style="width:100%;height:120px;padding:10px;border:1px solid #ddd;border-radius:8px;resize:none;margin-bottom:12px;"></textarea>
-                <div style="display:flex;gap:10px;justify-content:flex-end;">
-                    <button class="btn-primary" style="background:#95a5a6;" onclick="document.getElementById('modalDetencion')?.remove()">Cancelar</button>
-                    <button class="btn-primary" style="background:#e67e22;" onclick="(function(){ const motivo=document.getElementById('motivoDetencionInput').value.trim(); if(!motivo){ mostrarNotificacion('El motivo es obligatorio.', 'warning'); return; } cambiarEstadoProduccion(${id}, 'Detenido', motivo); document.getElementById('modalDetencion')?.remove(); })()">Confirmar detención</button>
-                </div>
-            </div>
-        </div>`;
-    document.body.insertAdjacentHTML('beforeend', contenido);
-}
-
-async function agregarComentarioProduccion(id) {
-    const campo = document.getElementById('nuevoComentarioProd');
-    const mensaje = campo?.value?.trim();
-    if (!mensaje) return mostrarNotificacion('Escribe un comentario', 'warning');
+async function accionOrdenEntregado(id) {
     try {
-        const res = await fetch(`${API}/produccion/${id}/comentarios`, { method: 'POST', headers: headers(), body: JSON.stringify({ mensaje }) });
+        const res = await fetch(`${API}/ordenes-produccion/${id}/entregado`, { method: 'POST', headers: headers() });
         const data = await res.json();
         if (data.exito) {
-            mostrarNotificacion('Comentario enviado', 'success');
-            if (campo) campo.value = '';
+            mostrarNotificacion('Orden marcada como entregada', 'success');
+            actualizarProduccion();
             verOrdenProduccion(id);
         } else {
             mostrarNotificacion('Error: ' + data.mensaje, 'error');
