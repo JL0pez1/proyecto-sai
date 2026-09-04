@@ -44,8 +44,20 @@ const actualizarInsumo = async (req, res) => {
     }
 };
 
+const eliminarInsumo = async (req, res) => {
+    try {
+        const eliminado = await insumoModel.eliminarInsumo(req.params.id);
+        if (!eliminado) return res.status(404).json({ exito: false, mensaje: 'Insumo no encontrado' });
+        res.json({ exito: true, mensaje: 'Insumo eliminado correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar insumo:', error);
+        res.status(409).json({ exito: false, mensaje: 'No se puede eliminar un insumo utilizado por cotizaciones o catálogos' });
+    }
+};
+
 module.exports = {
     listarInsumos,
     crearInsumo,
-    actualizarInsumo
+    actualizarInsumo,
+    eliminarInsumo
 };

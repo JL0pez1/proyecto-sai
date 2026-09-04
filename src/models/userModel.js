@@ -43,6 +43,13 @@ const desactivarUsuario = async (id_usuario) => {
     return result.affectedRows > 0;
 };
 
+// Cambiar el estado a "Activo"
+const activarUsuario = async (id_usuario) => {
+    const query = 'UPDATE usuarios SET estado = "Activo" WHERE id_usuario = ?';
+    const [result] = await db.query(query, [id_usuario]);
+    return result.affectedRows > 0;
+};
+
 // Actualizar contraseña (Reinicio)
 const cambiarPassword = async (id_usuario, passwordEncriptada) => {
     const query = 'UPDATE usuarios SET password = ? WHERE id_usuario = ?';
@@ -56,5 +63,6 @@ module.exports = {
     crearUsuario,
     actualizarUsuario,
     desactivarUsuario,
+    activarUsuario,
     cambiarPassword 
 };

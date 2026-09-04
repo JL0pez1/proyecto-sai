@@ -76,19 +76,6 @@ const validarAceptacion = async (id) => {
         return { ok: false, mensaje: 'La cotización no tiene líneas de detalle.' };
     }
     for (const item of detalles) {
-        if (!item.id_maquina) {
-            return { ok: false, mensaje: 'Debe seleccionar una máquina para cada línea antes de aceptar.' };
-        }
-        if (!item.tiempo_estimado_maquina || parseFloat(item.tiempo_estimado_maquina) <= 0) {
-            return { ok: false, mensaje: 'Debe registrar el tiempo estimado de máquina para cada línea antes de aceptar.' };
-        }
-        const [maquinaRows] = await db.query('SELECT estado FROM maquinas WHERE id_maquina = ?', [item.id_maquina]);
-        if (maquinaRows.length === 0) {
-            return { ok: false, mensaje: 'Máquina seleccionada no existe.' };
-        }
-        if (maquinaRows[0].estado !== 'Disponible') {
-            return { ok: false, mensaje: 'La máquina seleccionada ya no está disponible.' };
-        }
     }
     return { ok: true };
 };

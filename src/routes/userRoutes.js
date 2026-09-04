@@ -7,6 +7,7 @@ const { verificarToken } = require('../middlewares/authMiddleware'); // ¡Aquí 
 router.get('/', verificarToken, userController.listarUsuarios);
 router.put('/:id', verificarToken, userController.actualizarUsuario);
 router.patch('/:id/estado', verificarToken, userController.desactivarUsuario);
+router.patch('/:id/activar', verificarToken, userController.activarUsuario);
 router.patch('/:id/password', verificarToken, userController.reiniciarPassword);
 
 module.exports = router;

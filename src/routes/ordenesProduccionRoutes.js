@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/ordenesProduccionController');
+const produccionController = require('../controllers/produccionController');
 const { verificarToken } = require('../middlewares/authMiddleware');
 
 const permisoVer  = (req, res, next) => {
@@ -13,12 +14,43 @@ const permisoEditar = (req, res, next) => {
     if ([1,3].includes(id_rol)) return next();
     return res.status(403).json({ exito: false, mensaje: 'No tienes permiso para modificar Producción' });
 };
+const permisoEntrega = (req, res, next) => {
+    const id_rol = parseInt(req.usuario && req.usuario.id_rol);
+    if ([1, 2].includes(id_rol)) return next();
+    return res.status(403).json({ exito: false, mensaje: 'Solo Ventas o Administrador pueden registrar la entrega' });
+};
 
 // Listado y detalle
+router.get('/maquinas-disponibles', verificarToken, permisoEditar, async (req, res) => {
+    try {
+        res.json({ exito: true, datos: await ctrl.listarMaquinasDisponibles() });
+    } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
+});
+
 router.get('/', verificarToken, permisoVer, async (req, res) => {
     try {
         const datos = await ctrl.listarOrdenes();
         res.json({ exito: true, datos });
+    } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
+});
+
+// Estas rutas deben declararse antes de /:id para que no se interpreten como una orden.
+router.get('/notificaciones/mias', verificarToken, async (req, res) => {
+    try {
+        const datos = await ctrl.listarNotificaciones(req.usuario.id_usuario);
+        res.json({ exito: true, datos });
+    } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
+});
+
+router.patch('/notificaciones/:id/leida', verificarToken, async (req, res) => {
+    try {
+        res.json(await ctrl.marcarNotificacionLeida(req.params.id, req.usuario.id_usuario));
+    } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
+});
+
+router.delete('/notificaciones/leidas', verificarToken, async (req, res) => {
+    try {
+        res.json(await ctrl.limpiarNotificacionesLeidas(req.usuario.id_usuario));
     } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
 });
 
@@ -29,6 +61,8 @@ router.get('/:id', verificarToken, permisoVer, async (req, res) => {
         res.json({ exito: true, datos });
     } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
 });
+
+router.post('/:id/comentarios', verificarToken, permisoVer, produccionController.agregarComentario);
 
 // Creación desde cotización aceptada (normalmente la llama el controlador de cotizaciones)
 router.post('/cotizacion/:id', verificarToken, permisoEditar, async (req, res) => {
@@ -48,15 +82,20 @@ router.patch('/:id/prioridad', verificarToken, permisoEditar, async (req, res) =
 
 router.post('/:id/asignacion', verificarToken, permisoEditar, async (req, res) => {
     try {
-        await ctrl.asignarMaquinaOperador(req.params.id, req.body.id_maquina, req.body.id_usuario_operador);
-        res.json({ exito: true });
+        res.json(await ctrl.asignarMaquinaOperador(req.params.id, req.body.id_maquina, req.body.id_usuario_operador || req.usuario.id_usuario));
+    } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
+});
+
+router.patch('/:id/tiempo-estimado', verificarToken, permisoEditar, async (req, res) => {
+    try {
+        res.json(await ctrl.actualizarTiempoEstimado(req.params.id, req.body.horas));
     } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
 });
 
 // Cronómetro
 router.post('/:id/cronometro/iniciar', verificarToken, permisoEditar, async (req, res) => {
     try {
-        const r = await ctrl.iniciarCronometro(req.params.id, req.usuario.id_usuario, req.body.observaciones);
+        const r = await ctrl.iniciarCronometro(req.params.id, req.usuario.id_usuario, req.body.observaciones, req.body.id_maquina, req.body.horas);
         res.json(r);
     } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
 });
@@ -82,7 +121,13 @@ router.post('/:id/cronometro/finalizar', verificarToken, permisoEditar, async (r
     } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
 });
 
-router.post('/:id/entregado', verificarToken, permisoEditar, async (req, res) => {
+router.post('/:id/cancelar', verificarToken, permisoEditar, async (req, res) => {
+    try {
+        res.json(await ctrl.cancelarOrden(req.params.id, req.usuario.id_usuario));
+    } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
+});
+
+router.post('/:id/entregado', verificarToken, permisoEntrega, async (req, res) => {
     try {
         const r = await ctrl.marcarEntregado(req.params.id, req.usuario.id_usuario);
         res.json(r);
@@ -95,21 +140,6 @@ router.post('/:id/consumo', verificarToken, permisoEditar, async (req, res) => {
         const { id_insumo, cantidad_real, cantidad_estimada } = req.body;
         const r = await ctrl.registrarConsumoInsumo(req.params.id, id_insumo, cantidad_real, cantidad_estimada);
         res.json(r);
-    } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
-});
-
-// Notificaciones internas (propias del usuario logueado)
-router.get('/notificaciones/mias', verificarToken, async (req, res) => {
-    try {
-        const datos = await ctrl.listarNotificaciones(req.usuario.id_usuario);
-        res.json({ exito: true, datos });
-    } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
-});
-
-router.patch('/notificaciones/:id/leida', verificarToken, async (req, res) => {
-    try {
-        await ctrl.marcarNotificacionLeida(req.params.id, req.usuario.id_usuario);
-        res.json({ exito: true });
     } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
 });
 

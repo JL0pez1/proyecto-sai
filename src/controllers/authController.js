@@ -38,6 +38,10 @@ const login = async (req, res) => {
             return res.status(404).json({ exito: false, mensaje: 'Usuario no encontrado' });
         }
 
+        if (usuario.estado && usuario.estado !== 'Activo') {
+            return res.status(403).json({ exito: false, mensaje: 'El usuario está inhabilitado' });
+        }
+
         // 2. Comparar la contraseña ingresada con la encriptada
         const passwordValida = await bcrypt.compare(password, usuario.password);
         if (!passwordValida) {

@@ -37,11 +37,13 @@ const listarPorCliente = async (req, res) => {
 // Retorna todo el catálogo de insumos y precios de manera unificada (Optimiza peticiones HTTP)
 const obtenerCatalogo = async (req, res) => {
     try {
-        const [preciosBase, insumos, maquinas] = await Promise.all([
+        const [preciosBase, insumos] = await Promise.all([
             cotizacionModel.obtenerPreciosBase(),
-            cotizacionModel.obtenerInsumos(),
-            cotizacionModel.obtenerMaquinas()
+            cotizacionModel.obtenerInsumos()
         ]);
+        const maquinas = [1, 3].includes(parseInt(req.usuario.id_rol))
+            ? await cotizacionModel.obtenerMaquinas()
+            : [];
         res.status(200).json({ exito: true, datos: { preciosBase, insumos, maquinas } });
     } catch (error) {
         console.error('Error al obtener catálogo:', error);
@@ -86,9 +88,15 @@ const crearCotizacion = async (req, res) => {
             return res.status(400).json({ exito: false, mensaje: 'Debes seleccionar un cliente o ingresar uno nuevo' });
         }
 
+        const puedeAsignarMaquina = [1, 3].includes(parseInt(req.usuario.id_rol));
+        const detalleSeguro = detalle.map(item => ({
+            ...item,
+            id_maquina: puedeAsignarMaquina ? (item.id_maquina || null) : null
+        }));
+
         const id_cotizacion = await cotizacionModel.crearCotizacion(
             { id_cliente: clienteId, id_usuario },
-            detalle
+            detalleSeguro
         );
 
         res.status(201).json({

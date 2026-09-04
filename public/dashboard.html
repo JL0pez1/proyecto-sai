@@ -5,6 +5,7 @@
     <title>Dashboard - SAI</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="/socket.io-client/socket.io.min.js"></script>
     <style>
         .badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600; }
         .badge-pendiente   { background:#fff3cd; color:#856404; }
@@ -73,6 +74,7 @@
         <div class="sidebar-header">SAI Imprenta</div>
         <ul class="sidebar-menu" id="menuLateral"></ul>
         <div style="padding:20px;text-align:center;">
+            <div id="usuarioSesion" style="color:#ecf0f1;font-size:13px;margin-bottom:12px;"></div>
             <button id="btnCerrarSesion" class="btn-primary" style="background:#e74c3c;">Cerrar Sesión</button>
         </div>
     </aside>
@@ -260,13 +262,45 @@
 // ===== CONFIG =====
 const API = 'http://localhost:3000/api';
 const token = localStorage.getItem('token');
-if (!token) window.location.href = 'login.html';
-const headers = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
+function cerrarSesionPorToken() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+    window.location.href = 'login.html';
+}
 
 function decodificarToken(t) {
     try { return JSON.parse(atob(t.split('.')[1])); } catch(e) { return null; }
 }
+
 const datosToken = decodificarToken(token);
+if (!token || !datosToken || (datosToken.exp && datosToken.exp * 1000 <= Date.now())) cerrarSesionPorToken();
+const usuarioSesion = JSON.parse(localStorage.getItem('usuario') || 'null');
+const usuarioSesionEl = document.getElementById('usuarioSesion');
+if (usuarioSesionEl) usuarioSesionEl.textContent = `👤 ${usuarioSesion?.nombre || 'Usuario'}`;
+const headers = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
+let vistaActual = null;
+let ordenDetalleActual = null;
+
+const fetchOriginal = window.fetch.bind(window);
+window.fetch = async (...args) => {
+    const respuesta = await fetchOriginal(...args);
+    if (respuesta.status === 401) cerrarSesionPorToken();
+    return respuesta;
+};
+
+const socket = io('http://localhost:3000', { auth: { token } });
+socket.on('datos:actualizados', ({ ruta, usuarioId }) => {
+    if (String(usuarioId) === String(datosToken?.id_usuario)) return;
+    clearTimeout(window.actualizacionRealtimeTimer);
+    window.actualizacionRealtimeTimer = setTimeout(() => {
+        if (ordenDetalleActual) {
+            verOrdenProduccion(ordenDetalleActual);
+        } else if (vistaActual) {
+            cargarVista(vistaActual);
+        }
+    }, 150);
+});
+
 const rolID = datosToken ? parseInt(datosToken.id_rol) : null;
 
 // ===== MENÚ =====
@@ -282,11 +316,9 @@ if (rolID === 1) {
 } else if (rolID === 2) {
     htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
     htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
-    htmlMenu += `<li><a href="#" onclick="cargarVista('controlTiempos')">⏱️ Control de tiempos</a></li>`;
     htmlMenu += `<li><a href="#" onclick="cargarVista('seguimientoImpresiones')">📌 Seguimiento de impresiones</a></li>`;
 } else if (rolID === 3) {
-    htmlMenu += `<li><a href="#" onclick="cargarVista('controlTiempos')">⏱️ Control de tiempos</a></li>`;
-    htmlMenu += `<li><a href="#" onclick="cargarVista('seguimientoImpresiones')">📌 Seguimiento de impresiones</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('controlTiempos')">⏱️ Órdenes y tiempos de impresión</a></li>`;
 } else {
     htmlMenu += `<li><a href="#">⚠️ Rol no reconocido</a></li>`;
 } 
@@ -295,9 +327,26 @@ menuLateral.innerHTML = htmlMenu;
 // ===== HELPERS =====
 function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
 function cerrarCualquierModal(id) { cerrarModal(id); }
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    const contenido = overlay.querySelector('.modal-content');
+    if (!contenido || contenido.querySelector('.btn-modal-cerrar')) return;
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'btn-modal-cerrar';
+    boton.textContent = '×';
+    boton.title = 'Cerrar';
+    boton.onclick = () => { overlay.style.display = 'none'; };
+    contenido.insertBefore(boton, contenido.firstChild);
+    overlay.addEventListener('click', event => {
+        if (event.target === overlay) overlay.style.display = 'none';
+    });
+});
+
 function cerrarModalDetalleProduccion() {
     const detalle = document.getElementById('modalProdDetalle');
     if (detalle) detalle.remove();
+    ordenDetalleActual = null;
     if (cronometroInterval) {
         clearInterval(cronometroInterval);
         cronometroInterval = null;
@@ -306,24 +355,25 @@ function cerrarModalDetalleProduccion() {
 
 function mostrarModalInput(titulo, placeholder, onAceptar, onCancelar = () => {}) {
     const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
+    overlay.className = 'modal-overlay modal-overlay-input';
     overlay.style.display = 'flex';
     overlay.innerHTML = `
         <div class="modal-content" style="max-width:460px;">
+            <button type="button" class="btn-modal-cerrar" title="Cerrar">×</button>
             <h3>${titulo}</h3>
             <textarea id="modalInputTexto" placeholder="${placeholder}" style="width:100%;min-height:120px;padding:10px;border:1px solid #ddd;border-radius:8px;margin-top:12px;box-sizing:border-box;"></textarea>
             <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
-                <button type="button" class="btn-primary" style="background:#95a5a6;">Cancelar</button>
-                <button type="button" class="btn-primary" style="background:#3498db;">Aceptar</button>
+                <button type="button" class="btn-primary btn-cancelar-input" style="background:#95a5a6;">Cancelar</button>
+                <button type="button" class="btn-primary btn-aceptar-input" style="background:#3498db;">Aceptar</button>
             </div>
         </div>
     `;
-    const buttons = overlay.querySelectorAll('button');
-    buttons[0].addEventListener('click', () => {
+    overlay.querySelector('.btn-modal-cerrar').addEventListener('click', () => { overlay.remove(); onCancelar(); });
+    overlay.querySelector('.btn-cancelar-input').addEventListener('click', () => {
         overlay.remove();
         onCancelar();
     });
-    buttons[1].addEventListener('click', () => {
+    overlay.querySelector('.btn-aceptar-input').addEventListener('click', () => {
         const texto = overlay.querySelector('#modalInputTexto').value.trim();
         overlay.remove();
         onAceptar(texto);
@@ -334,10 +384,17 @@ function mostrarModalInput(titulo, placeholder, onAceptar, onCancelar = () => {}
 function actualizarContadorOrdenProd() {
     const el = document.getElementById('tiempoRestanteProduccion');
     if (!el || !produccionActual) return;
-    const segundosEstimados = Math.round((produccionActual.comparativo?.tiempo_estimado_horas || 0) * 3600);
-    const segundosReales = calcularSegundosTotalesTiempos(produccionActual.tiempos || []);
+    const segundosEstimados = Math.round((produccionActual.tiempo_estimado_horas || 0) * 3600);
+    const inicio = parseLocalDatetime(produccionActual.fecha_inicio_real);
+    const fin = parseLocalDatetime(produccionActual.fecha_fin_real) || new Date();
+    const segundosReales = inicio ? Math.max(0, (fin.getTime() - inicio.getTime()) / 1000) : 0;
     if (segundosEstimados === 0) {
         el.textContent = 'Sin estimado disponible';
+        el.style.color = '#2c3e50';
+        return;
+    }
+    if (!inicio) {
+        el.textContent = 'Pendiente de iniciar';
         el.style.color = '#2c3e50';
         return;
     }
@@ -470,8 +527,22 @@ function mostrarConfirmacion(mensaje, onAceptar, onCancelar = () => {}) {
     document.body.appendChild(overlay);
 }
 
+function mostrarConfirmacionWeb(mensaje, onAceptar, onCancelar = () => {}) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay modal-overlay-confirmacion';
+    overlay.style.display = 'flex';
+    overlay.innerHTML = `<div class="modal-content" style="max-width:420px;"><button type="button" class="btn-modal-cerrar">×</button><h3>Confirmar</h3><p style="margin:12px 0 0;line-height:1.4;">${mensaje}</p><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;"><button type="button" class="btn-primary btn-cancelar-confirmacion" style="background:#95a5a6;">Cancelar</button><button type="button" class="btn-primary" style="background:#c0392b;">Aceptar</button></div></div>`;
+    const cerrar = () => { overlay.remove(); onCancelar(); };
+    overlay.querySelector('.btn-modal-cerrar').onclick = cerrar;
+    overlay.querySelector('.btn-cancelar-confirmacion').onclick = cerrar;
+    overlay.querySelectorAll('button')[2].onclick = () => { overlay.remove(); onAceptar(); };
+    overlay.onclick = event => { if (event.target === overlay) cerrar(); };
+    document.body.appendChild(overlay);
+}
+
 // ===== CARGAR VISTA =====
 async function cargarVista(modulo) {
+    vistaActual = modulo;
     const titulo     = document.getElementById('tituloSeccion');
     const contenedor = document.getElementById('contenedorVistas');
 
@@ -499,7 +570,9 @@ async function cargarVista(modulo) {
                         <td>${u.estado}</td>
                         <td style="text-align:center;">
                             <button class="btn-accion btn-edit" onclick="editarUsuario(${u.id_usuario},'${u.nombre_completo.replace(/'/g,"\\'")}')">✏️ Editar</button>
-                            <button class="btn-accion btn-delete" onclick="desactivarUsuario(${u.id_usuario})">🚫 Bajar</button>
+                            ${u.estado === 'Activo'
+                                ? `<button class="btn-accion btn-delete" onclick="desactivarUsuario(${u.id_usuario})">🚫 Bajar</button>`
+                                : `<button class="btn-accion" style="background:#27ae60;" onclick="activarUsuario(${u.id_usuario})">✅ Habilitar</button>`}
                             <button class="btn-accion" style="background:#34495e;" onclick="resetearClave(${u.id_usuario})">🔑 Clave</button>
                         </td>
                     </tr>`;
@@ -540,10 +613,13 @@ async function cargarVista(modulo) {
         contenedor.innerHTML = `
             <div class="modulo-header">
                 <h3>Lista de Cotizaciones</h3>
-                <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCotizacion()">+ Nueva Cotización</button>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    ${rolID === 1 ? '<button class="btn-primary" style="width:auto;padding:10px 20px;background:#8e44ad;" onclick="abrirGestionCatalogo()">⚙️ Catálogos</button>' : ''}
+                    <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCotizacion()">+ Nueva Cotización</button>
+                </div>
             </div>
             <div class="filtros-row">
-                <input type="text" id="filtroCot" placeholder="🔍 Buscar por cliente..." oninput="filtrarCotizaciones()" style="flex:1;min-width:200px;">
+                <input type="text" id="filtroCot" placeholder="🔍 Buscar por # de cotización..." oninput="filtrarCotizaciones()" style="flex:1;min-width:200px;">
                 <select id="filtroEstadoCot" onchange="filtrarCotizaciones()">
                     <option value="">Todos los estados</option>
                     <option value="Pendiente">Pendiente</option>
@@ -553,16 +629,17 @@ async function cargarVista(modulo) {
             </div>
             <div class="cards-row" id="statsCotizaciones"></div>
             <table class="tabla-sai">
-                <thead><tr><th>Cliente</th><th>Fecha</th><th>Estado</th><th>Total</th><th>Creada por</th><th style="text-align:center;">Acciones</th></tr></thead>
-                <tbody id="tablaCotBody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+                <thead><tr><th># Cotización</th><th>Cliente</th><th>Fecha</th><th>Estado</th><th>Total</th><th>Creada por</th><th style="text-align:center;">Acciones</th></tr></thead>
+                <tbody id="tablaCotBody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
             </table>`;
         await cargarCotizaciones();
 
     } else if (modulo === 'controlTiempos') {
-        titulo.innerText = '⏱️ Control de tiempos';
+        titulo.innerText = '⏱️ Órdenes y tiempos de impresión';
         contenedor.innerHTML = `
             <div class="modulo-header">
-                <h3>Control de tiempos</h3>
+                <h3>Órdenes y tiempos de impresión</h3>
+                ${rolID === 1 ? '<button class="btn-primary" style="width:auto;padding:10px 20px;background:#8e44ad;" onclick="abrirGestionImpresoras()">⚙️ Impresoras</button>' : ''}
             </div>
             <div class="cards-row" id="statsProduccion"></div>
             <div class="filtros-row">
@@ -595,10 +672,11 @@ async function cargarVista(modulo) {
             </div>
             <div class="cards-row" id="statsSeguimiento"></div>
             <table class="tabla-sai">
-                <thead><tr><th>Orden</th><th>Cliente</th><th>Estado</th><th>Máquina</th><th>Operador</th><th>Entrega</th><th style="text-align:center;">Ver</th></tr></thead>
-                <tbody id="tablaSeguimientoBody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
-            </table>`;
+                <thead><tr><th>Orden</th><th>Cliente</th><th>Estado</th><th>Máquina</th><th>Operador</th><th>Tiempo Producción</th><th>Entrega</th><th style="text-align:center;">Ver</th></tr></thead>
+                <tbody id="tablaSeguimientoBody"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+            </table><div id="notificacionesProduccion" style="margin-top:20px;"></div>`;
         await actualizarProduccion();
+        await cargarNotificacionesProduccion();
     } else if (modulo === 'insumos') {
         titulo.innerText = '📦 Gestión de Insumos';
         contenedor.innerHTML = '<p>Próximamente: Módulo de Inventario e Insumos</p>';
@@ -733,7 +811,13 @@ document.getElementById('formCliente').addEventListener('submit', async (e) => {
 
 let todasCotizaciones = [];
 let catalogoCot = { preciosBase:[], insumos:[], maquinas:[] };
+async function cargarCatalogo() {
+    const res = await fetch(`${API}/cotizaciones/catalogo`, { headers: headers() });
+    const data = await res.json();
+    if (data.exito) catalogoCot = data.datos;
+}
 let contLineas = 0;
+const puedeAsignarMaquina = rolID === 1 || rolID === 3;
 let cotActualParaPdf = null;
 
 async function cargarCotizaciones() {
@@ -765,11 +849,12 @@ function renderCotizaciones(lista) {
     const tbody = document.getElementById('tablaCotBody');
     if (!tbody) return;
     tbody.innerHTML='';
-    if (!lista.length){tbody.innerHTML='<tr><td colspan="6" class="loading">No hay cotizaciones.</td></tr>';return;}
+    if (!lista.length){tbody.innerHTML='<tr><td colspan="7" class="loading">No hay cotizaciones.</td></tr>';return;}
     lista.forEach(c=>{
         const fecha = new Date(c.fecha_emision).toLocaleDateString('es-GT');
         const esPend = c.estado==='Pendiente';
         tbody.innerHTML+=`<tr>
+            <td>#${c.id_cotizacion}</td>
             <td>${c.nombre_cliente||'—'}</td>
             <td>${fecha}</td>
             <td>${badgeEstado(c.estado)}</td>
@@ -787,12 +872,124 @@ function renderCotizaciones(lista) {
 }
 
 function filtrarCotizaciones() {
-    const txt    = (document.getElementById('filtroCot')?.value||'').toLowerCase();
+    const txt    = (document.getElementById('filtroCot')?.value||'').replace(/^#/,'').trim();
     const estado = document.getElementById('filtroEstadoCot')?.value||'';
     renderCotizaciones(todasCotizaciones.filter(c=>
-        (!txt    || (c.nombre_cliente&&c.nombre_cliente.toLowerCase().includes(txt))) &&
+        (!txt    || String(c.id_cotizacion) === txt) &&
         (!estado || c.estado===estado)
     ));
+}
+
+let adminInsumos = [];
+let adminMaquinas = [];
+const escaparCatalogo = valor => String(valor ?? '').replace(/[&<>"']/g, caracter => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[caracter]));
+
+async function abrirGestionCatalogo() {
+    if (rolID !== 1) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'modalGestionCatalogo';
+    overlay.className = 'modal-overlay';
+    overlay.style.display = 'flex';
+    overlay.innerHTML = `<div class="modal-content wide" style="max-width:980px;max-height:92vh;overflow:auto;">
+        <button type="button" class="btn-modal-cerrar" title="Cerrar">×</button>
+        <h3>⚙️ Catálogos para cotizaciones</h3>
+        <div><section><h4>Insumos: papel, tinta y acabados</h4>
+                <form id="formAdminInsumo" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+                    <input type="hidden" id="adminInsumoId">
+                    <input id="adminInsumoNombre" placeholder="Nombre" required>
+                    <input id="adminInsumoCategoria" placeholder="Categoría (Papel, Tinta...)" required>
+                    <input id="adminInsumoCosto" type="number" min="0" step="0.01" placeholder="Precio de compra" required>
+                    <input id="adminInsumoVenta" type="number" min="0" step="0.01" placeholder="Precio de venta" required>
+                    <button class="btn-primary" type="submit">Guardar insumo</button>
+                    <button class="btn-primary" type="button" style="background:#95a5a6;" onclick="limpiarFormAdminInsumo()">Limpiar</button>
+                </form><div id="listaAdminInsumos"></div>
+            </section></div>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('.btn-modal-cerrar').onclick = () => overlay.remove();
+    overlay.onclick = event => { if (event.target === overlay) overlay.remove(); };
+    document.getElementById('formAdminInsumo').addEventListener('submit', guardarAdminInsumo);
+    await cargarCatalogosAdmin();
+}
+
+async function abrirGestionImpresoras() {
+    if (rolID !== 1) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'modalGestionImpresoras';
+    overlay.className = 'modal-overlay';
+    overlay.style.display = 'flex';
+    overlay.innerHTML = `<div class="modal-content wide" style="max-width:760px;max-height:92vh;overflow:auto;">
+        <button type="button" class="btn-modal-cerrar" title="Cerrar">×</button>
+        <h3>⚙️ Gestión de impresoras</h3>
+        <form id="formAdminMaquina" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+            <input type="hidden" id="adminMaquinaId">
+            <input id="adminMaquinaNombre" placeholder="Nombre" required>
+            <input id="adminMaquinaTipo" placeholder="Tipo" required>
+            <input id="adminMaquinaPrecio" type="number" min="0" step="0.01" placeholder="Precio por hora" required>
+            <button class="btn-primary" type="submit">Guardar impresora</button>
+            <button class="btn-primary" type="button" style="background:#95a5a6;" onclick="limpiarFormAdminMaquina()">Limpiar</button>
+        </form>
+        <div id="listaAdminMaquinas"></div>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('.btn-modal-cerrar').onclick = () => overlay.remove();
+    overlay.onclick = event => { if (event.target === overlay) overlay.remove(); };
+    document.getElementById('formAdminMaquina').addEventListener('submit', guardarAdminMaquina);
+    await cargarCatalogosAdmin();
+}
+
+async function cargarCatalogosAdmin() {
+    try {
+        const [insumosRes, maquinasRes] = await Promise.all([
+            fetch(`${API}/insumos`, { headers: headers() }),
+            fetch(`${API}/maquinas`, { headers: headers() })
+        ]);
+        const insumosData = await insumosRes.json();
+        const maquinasData = await maquinasRes.json();
+        adminInsumos = insumosData.datos || [];
+        adminMaquinas = maquinasData.datos || [];
+        renderCatalogosAdmin();
+    } catch (error) { mostrarNotificacion('No se pudieron cargar los catálogos', 'error'); }
+}
+
+function renderCatalogosAdmin() {
+    const insumos = document.getElementById('listaAdminInsumos');
+    const maquinas = document.getElementById('listaAdminMaquinas');
+    if (insumos) insumos.innerHTML = adminInsumos.map(i => `<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid #eee;padding:8px 0;font-size:12px;"><span><b>${escaparCatalogo(i.nombre)}</b><br>${escaparCatalogo(i.categoria)} · Compra Q${i.costo_unitario} · Venta Q${i.precio_venta}</span><span><button class="btn-accion btn-edit" onclick="editarAdminInsumo(${i.id_insumo})">✏️</button><button class="btn-accion btn-delete" onclick="eliminarAdminInsumo(${i.id_insumo})">🗑️</button></span></div>`).join('') || '<p>No hay insumos.</p>';
+    if (maquinas) maquinas.innerHTML = adminMaquinas.map(m => `<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid #eee;padding:8px 0;font-size:12px;"><span><b>${escaparCatalogo(m.nombre)}</b><br>${escaparCatalogo(m.tipo)} · Q${m.precio_por_hora}/h · ${m.estado}</span><span><button class="btn-accion btn-edit" onclick="editarAdminMaquina(${m.id_maquina})">✏️</button>${m.estado === 'Mantenimiento' ? `<button class="btn-accion btn-accept" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Disponible')">✅ Habilitar</button>` : `<button class="btn-accion btn-delete" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Mantenimiento')">🚫 Deshabilitar</button>`}</span></div>`).join('') || '<p>No hay impresoras.</p>';
+}
+
+function limpiarFormAdminInsumo() { document.getElementById('formAdminInsumo').reset(); document.getElementById('adminInsumoId').value = ''; }
+function limpiarFormAdminMaquina() { document.getElementById('formAdminMaquina').reset(); document.getElementById('adminMaquinaId').value = ''; }
+function editarAdminInsumo(id) { const i = adminInsumos.find(item => item.id_insumo === id); if (!i) return; document.getElementById('adminInsumoId').value=id; document.getElementById('adminInsumoNombre').value=i.nombre; document.getElementById('adminInsumoCategoria').value=i.categoria; document.getElementById('adminInsumoCosto').value=i.costo_unitario; document.getElementById('adminInsumoVenta').value=i.precio_venta; }
+function editarAdminMaquina(id) { const m = adminMaquinas.find(item => item.id_maquina === id); if (!m) return; document.getElementById('adminMaquinaId').value=id; document.getElementById('adminMaquinaNombre').value=m.nombre; document.getElementById('adminMaquinaTipo').value=m.tipo; document.getElementById('adminMaquinaPrecio').value=m.precio_por_hora; }
+
+async function guardarAdminInsumo(event) {
+    event.preventDefault(); const id=document.getElementById('adminInsumoId').value;
+    const body={nombre:document.getElementById('adminInsumoNombre').value,categoria:document.getElementById('adminInsumoCategoria').value,costo_unitario:Number(document.getElementById('adminInsumoCosto').value),precio_venta:Number(document.getElementById('adminInsumoVenta').value)};
+    const res=await fetch(`${API}/insumos${id?`/${id}`:''}`,{method:id?'PUT':'POST',headers:headers(),body:JSON.stringify(body)}); const data=await res.json();
+    if(data.exito){mostrarNotificacion('Insumo guardado','success');limpiarFormAdminInsumo();cargarCatalogosAdmin();cargarCatalogo();}else mostrarNotificacion(data.mensaje,'error');
+}
+async function eliminarAdminInsumo(id) {
+    mostrarConfirmacionWeb('¿Eliminar este insumo del catálogo?', async () => {
+        const res=await fetch(`${API}/insumos/${id}`,{method:'DELETE',headers:headers()});
+        const data=await res.json();
+        if(data.exito){mostrarNotificacion('Insumo eliminado','success');cargarCatalogosAdmin();cargarCatalogo();}else mostrarNotificacion(data.mensaje,'error');
+    });
+}
+async function guardarAdminMaquina(event) {
+    event.preventDefault(); const id=document.getElementById('adminMaquinaId').value;
+    const body={nombre:document.getElementById('adminMaquinaNombre').value,tipo:document.getElementById('adminMaquinaTipo').value,precio_por_hora:Number(document.getElementById('adminMaquinaPrecio').value)};
+    const res=await fetch(`${API}/maquinas${id?`/${id}`:''}`,{method:id?'PUT':'POST',headers:headers(),body:JSON.stringify(body)});const data=await res.json();
+    if(data.exito){mostrarNotificacion('Impresora guardada','success');limpiarFormAdminMaquina();cargarCatalogosAdmin();cargarCatalogo();}else mostrarNotificacion(data.mensaje,'error');
+}
+async function cambiarEstadoAdminMaquina(id, estado) {
+    const accion = estado === 'Mantenimiento' ? 'deshabilitar' : 'habilitar';
+    mostrarConfirmacionWeb(`¿Deseas ${accion} esta impresora?`, async () => {
+        const res=await fetch(`${API}/maquinas/${id}/estado`,{method:'PATCH',headers:headers(),body:JSON.stringify({estado})});
+        const data=await res.json();
+        if(data.exito){mostrarNotificacion('Estado de impresora actualizado','success');cargarCatalogosAdmin();cargarCatalogo();}else mostrarNotificacion(data.mensaje,'error');
+    });
 }
 
 // ---- TABS cliente nuevo / existente ----
@@ -891,22 +1088,15 @@ function agregarLinea() {
             </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:2fr 1fr 2fr 1fr; gap:10px; background:#fff; padding:10px; border-radius:6px; border: 1px dashed #ccc; margin-bottom:10px;">
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px; color:#8e44ad; font-weight:bold;">3. Máquina a usar</label>
-                <select id="maq-${id}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" onchange="autocompletarPrecio(${id})">${opcionesMaquina}</select>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;">Horas Uso</label>
-                <input type="number" id="tiem-${id}" min="0" step="0.5" placeholder="0" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" oninput="autocompletarPrecio(${id})">
-            </div>
+        <div style="display:grid;grid-template-columns:1fr;gap:10px;background:#fff;padding:10px;border-radius:6px;border:1px dashed #ccc;margin-bottom:10px;">
+            <div style="padding:8px;color:#7f8c8d;font-size:12px;">El tiempo y la impresora serán definidos por Producción después de aceptar la cotización.</div>
             <div class="form-group" style="margin:0;">
                 <label style="font-size:12px; color:#c0392b; font-weight:bold;">4. Tinta Requerida</label>
                 <select id="tinta-${id}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" onchange="autocompletarPrecio(${id})">${opcionesTinta}</select>
             </div>
             <div class="form-group" style="margin:0;">
                 <label style="font-size:12px;">Cant. Tinta</label>
-                <input type="number" id="cantTinta-${id}" min="0" step="0.1" placeholder="0" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" oninput="autocompletarPrecio(${id})">
+                <input type="number" id="cantTinta-${id}" min="0" step="1" placeholder="0" pattern="[0-9]*" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" oninput="autocompletarPrecio(${id})">
             </div>
         </div>
 
@@ -931,8 +1121,6 @@ function quitarLinea(id) {
 function autocompletarPrecio(id) {
     const selectTrabajo = document.getElementById(`tt-${id}`);
     const selectAcabado = document.getElementById(`ins-${id}`);
-    const selectMaquina = document.getElementById(`maq-${id}`);
-    const inputTiempo   = document.getElementById(`tiem-${id}`);
     const selectTinta   = document.getElementById(`tinta-${id}`);
     const inputTinta    = document.getElementById(`cantTinta-${id}`);
     const inputCantidad = document.getElementById(`cant-${id}`);
@@ -958,21 +1146,17 @@ function autocompletarPrecio(id) {
     const costoUnitarioTotal = (precioBase + precioAcabado) * cantidad;
 
     // 2. Costos operacionales globales del tiraje (Horas máquina + Cantidad tinta)
-    const precioHoraMaq = (selectMaquina && selectMaquina.selectedIndex > 0) ? parseFloat(selectMaquina.options[selectMaquina.selectedIndex].dataset.precio) || 0 : 0;
-    const horasMaq = parseFloat(inputTiempo.value) || 0;
-    const costoMaquinaGlobal = precioHoraMaq * horasMaq;
-
     const precioTinta = (selectTinta && selectTinta.selectedIndex > 0) ? parseFloat(selectTinta.options[selectTinta.selectedIndex].dataset.precio) || 0 : 0;
-    const cantTinta = parseFloat(inputTinta.value) || 0;
+    const cantTinta = parseInt(inputTinta.value, 10) || 0;
     const costoTintaGlobal = precioTinta * cantTinta;
 
     // Cálculo final aplicando sumatoria de costos de producción
-    const subtotal = costoUnitarioTotal + costoMaquinaGlobal + costoTintaGlobal;
+    const subtotal = costoUnitarioTotal + costoTintaGlobal;
     
     inputSubtotal.value = subtotal.toFixed(2);
     
     if (info) {
-        info.innerHTML = `✅ Base: Q${(precioBase*cantidad).toFixed(2)} | Extras + Máquina + Tinta: Q${(precioAcabado*cantidad + costoMaquinaGlobal + costoTintaGlobal).toFixed(2)}`;
+        info.innerHTML = `✅ Base: Q${(precioBase*cantidad).toFixed(2)} | Extras + Tinta: Q${(precioAcabado*cantidad + costoTintaGlobal).toFixed(2)}`;
     }
     recalcularTotal();
 }
@@ -1020,14 +1204,13 @@ document.getElementById('formCotizacion').addEventListener('submit', async (e) =
         const id_acabado = document.getElementById(`ins-${lid}`)?.value ? parseInt(document.getElementById(`ins-${lid}`).value) : null;
         
         const inTinta = document.getElementById(`cantTinta-${lid}`);
-        const inTiempo = document.getElementById(`tiem-${lid}`);
         const consumo_estimado_tinta = inTinta ? parseFloat(inTinta.value) || 0 : 0;
-        const tiempo_estimado_maquina = inTiempo ? parseFloat(inTiempo.value) || 0 : 0;
         
         const subtotal = parseFloat(document.getElementById(`sub-${lid}`)?.value) || 0;
+        if (inTinta && inTinta.value && !Number.isInteger(Number(inTinta.value))) { valido = false; return; }
         
         if (!tipo_trabajo || cantidad < 1 || subtotal <= 0) { valido = false; return; }
-        const id_maquina = document.getElementById(`maq-${lid}`)?.value ? parseInt(document.getElementById(`maq-${lid}`).value) : null;
+        const id_maquina = puedeAsignarMaquina && document.getElementById(`maq-${lid}`)?.value ? parseInt(document.getElementById(`maq-${lid}`).value) : null;
         const id_tinta = document.getElementById(`tinta-${lid}`)?.value ? parseInt(document.getElementById(`tinta-${lid}`).value) : null;
 
         detalle.push({
@@ -1037,7 +1220,7 @@ document.getElementById('formCotizacion').addEventListener('submit', async (e) =
             id_papel,
             id_acabado,
             consumo_estimado_tinta,
-            tiempo_estimado_maquina,
+            tiempo_estimado_maquina: null,
             id_maquina,
             id_tinta,
             subtotal
@@ -1077,7 +1260,7 @@ async function verCotizacion(id) {
                     <span>Papel Base: <b>${d.nombre_papel||'—'}</b></span>
                     <span>Acabado: <b>${d.nombre_insumo||'—'}</b></span>
                     <span>Consumo Tinta: <b>${d.consumo_estimado_tinta ? d.consumo_estimado_tinta : '0'} unit.</b></span>
-                    <span>Tiempo Máquina: <b>${d.tiempo_estimado_maquina ? d.tiempo_estimado_maquina+' h' : '0 h'}</b></span>
+                    <span>Tiempo: <b>Lo define Producción</b></span>
                 </div>
                 <div style="text-align:right;margin-top:8px;font-weight:700;color:#27ae60;font-size:14px;">Subtotal: Q ${parseFloat(d.subtotal).toFixed(2)}</div>
             </div>`;
@@ -1222,7 +1405,7 @@ async function actualizarProduccion() {
         const tbody = document.getElementById('tablaProduccionBody');
         if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="color:red;text-align:center;">Error al cargar</td></tr>';
         const tbody2 = document.getElementById('tablaSeguimientoBody');
-        if (tbody2) tbody2.innerHTML = '<tr><td colspan="7" style="color:red;text-align:center;">Error al cargar</td></tr>';
+        if (tbody2) tbody2.innerHTML = '<tr><td colspan="8" style="color:red;text-align:center;">Error al cargar</td></tr>';
     }
 }
 
@@ -1271,18 +1454,20 @@ function renderSeguimiento(lista) {
     const tbody = document.getElementById('tablaSeguimientoBody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7" class="loading">No hay órdenes para seguimiento.</td></tr>'; return; }
+    if (!lista.length) { tbody.innerHTML = '<tr><td colspan="8" class="loading">No hay órdenes para seguimiento.</td></tr>'; return; }
 
     lista.forEach(o => {
         const fechaEntrega = o.fecha_entrega_estimada ? new Date(o.fecha_entrega_estimada).toLocaleDateString('es-GT') : 'Sin fecha';
         const maquina = o.maquina_nombre || '—';
         const operador = o.operador_nombre || '—';
+        const tiempoProduccion = o.tiempo_estimado_horas ? `${o.tiempo_estimado_horas} h` : 'Pendiente';
         tbody.innerHTML += `<tr>
             <td>${o.id_orden}</td>
             <td>${o.cliente_nombre || '—'}</td>
             <td>${o.estado_actual || '—'}</td>
             <td>${maquina}</td>
             <td>${operador}</td>
+            <td>${tiempoProduccion}</td>
             <td>${fechaEntrega}</td>
             <td style="text-align:center;"><button class="btn-accion btn-view" onclick="verOrdenProduccion(${o.id_orden})">👁 Ver</button></td>
         </tr>`;
@@ -1323,13 +1508,22 @@ function renderNotificacionesProduccion(lista) {
         return;
     }
     cont.innerHTML = `
-        <div style="margin-bottom:10px;font-weight:700;color:#2c3e50;">🔔 Notificaciones</div>
+        <div style="margin-bottom:10px;font-weight:700;color:#2c3e50;display:flex;justify-content:space-between;align-items:center;">🔔 Notificaciones <button class="btn-accion btn-delete" onclick="limpiarNotificacionesLeidas()">🧹 Limpiar leídas</button></div>
         <div style="display:grid;gap:10px;">${lista.map(n => `
             <div style="padding:12px;border-radius:8px;border:1px solid #e9ecef;background:${n.leida ? '#f5f5f5' : '#fff'};position:relative;">
                 <div style="font-size:13px;line-height:1.4;">${n.mensaje}</div>
                 <div style="margin-top:8px;font-size:11px;color:#7f8c8d;">${new Date(n.fecha_creacion).toLocaleString('es-GT')} ${n.leida ? '· Leída' : '· Nueva'}</div>
                 ${n.leida ? '' : `<button class="btn-accion btn-accept" style="position:absolute;top:12px;right:12px; padding:4px 8px;font-size:11px;" onclick="marcarNotificacionLeida(${n.id_notificacion})">Marcar leída</button>`}
             </div>`).join('')}</div>`;
+}
+
+async function limpiarNotificacionesLeidas() {
+    try {
+        const res = await fetch(`${API}/ordenes-produccion/notificaciones/leidas`, { method:'DELETE', headers:headers() });
+        const data = await res.json();
+        if (data.exito) { mostrarNotificacion(`${data.eliminadas} mensaje(s) eliminado(s)`, 'success'); cargarNotificacionesProduccion(); }
+        else mostrarNotificacion('No se pudieron limpiar los mensajes', 'error');
+    } catch (e) { mostrarNotificacion('Error de conexión', 'error'); }
 }
 
 async function marcarNotificacionLeida(id) {
@@ -1366,13 +1560,23 @@ function formatearDuracion(segundos) {
 }
 
 async function verOrdenProduccion(id) {
+    ordenDetalleActual = id;
     try {
         const res = await fetch(`${API}/ordenes-produccion/${id}`, { headers: headers() });
         const data = await res.json();
         if (!data.exito) { mostrarNotificacion('No se pudo cargar la orden', 'error'); return; }
         const o = data.datos;
         produccionActual = o;
-        const listaDetalle = (o.detalle || []).length ? (o.detalle || []).map((d, i) => `<li><strong>${d.tipo_trabajo}</strong> · Cantidad ${d.cantidad} · Tiempo estimado ${d.tiempo_estimado_maquina || 0} h</li>`).join('') : '<li>Sin detalle</li>';
+        const puedeGestionarProduccion = rolID === 1 || rolID === 3;
+        const maquinaAsignada = (o.asignaciones || [])[0] || null;
+        const tiempoEstimadoOrden = Number(o.tiempo_estimado_horas || 0);
+        let maquinasDisponibles = [];
+        if (puedeGestionarProduccion) {
+            const maquinasRes = await fetch(`${API}/ordenes-produccion/maquinas-disponibles`, { headers: headers() });
+            const maquinasData = await maquinasRes.json();
+            maquinasDisponibles = maquinasData.datos || [];
+        }
+        const listaDetalle = (o.detalle || []).length ? (o.detalle || []).map((d, i) => `<li><strong>${d.tipo_trabajo}</strong> · Cantidad ${d.cantidad}</li>`).join('') : '<li>Sin detalle</li>';
         const segmentos = (o.tiempos || []).map(t => {
             const inicio = formatoFecha(t.inicio);
             const fin = t.fin ? formatoFecha(t.fin) : 'Activo';
@@ -1402,13 +1606,29 @@ async function verOrdenProduccion(id) {
                     <div><strong>Entrega estimada:</strong> ${formatoFecha(o.fecha_entrega_estimada)}</div>
                     <div><strong>Tiempo real invertido:</strong> ${tiempoReal}</div>
                 </div>
-                <div style="display:flex;flex-wrap:wrap;gap:10px;">
-                    ${estado === 'Confirmado' ? `<button class="btn-accion btn-accept" onclick="accionCronometro(${id}, 'iniciar')">▶️ Iniciar cronómetro</button>` : ''}
+                ${puedeGestionarProduccion ? `<div style="padding:14px;background:#fff8e7;border:1px solid #f0d58a;border-radius:10px;display:grid;gap:10px;">
+                    <strong>Preparación de impresión</strong>
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <label for="tiempoEstimadoOrden"><b>Tiempo estimado real (horas)</b></label>
+                        <input id="tiempoEstimadoOrden" type="number" min="0.1" step="0.1" value="${tiempoEstimadoOrden || ''}" placeholder="Ej. 4.5" style="width:110px;padding:7px;" oninput="actualizarBotonIniciar()" ${estado !== 'Confirmado' ? 'disabled' : ''}>
+                    </div>
+                    <strong>Asignación de impresora</strong>
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <span>${maquinaAsignada ? `Asignada: <b>${maquinaAsignada.maquina_nombre || 'Impresora'}</b>` : 'Sin impresora asignada'}</span>
+                        ${estado === 'Confirmado' ? `<select id="maquinaOrdenSelect" style="padding:7px;min-width:220px;" onchange="actualizarBotonIniciar()">
+                            <option value="">Seleccionar impresora disponible</option>
+                            ${maquinasDisponibles.map(m => `<option value="${m.id_maquina}">${m.nombre}</option>`).join('')}
+                        </select>` : ''}
+                    </div>
+                    <small style="color:#7f8c8d;">La impresora se bloqueará al pulsar Iniciar y quedará reservada hasta finalizar o cancelar.</small>
+                </div>` : ''}
+                ${puedeGestionarProduccion ? `<div style="display:flex;flex-wrap:wrap;gap:10px;">
+                    ${estado === 'Confirmado' ? `<button id="btnIniciarOrden" class="btn-accion btn-accept" disabled onclick="accionCronometro(${id}, 'iniciar')">▶️ Iniciar cronómetro</button>` : ''}
                     ${estado === 'En producción' && tieneActivo ? `<button class="btn-accion btn-reject" onclick="accionCronometro(${id}, 'pausar')">⏸️ Pausar</button>` : ''}
                     ${estado === 'En producción' && !tieneActivo ? `<button class="btn-accion btn-accept" onclick="accionCronometro(${id}, 'reanudar')">▶️ Reanudar</button>` : ''}
                     ${estado === 'En producción' ? `<button class="btn-accion btn-edit" onclick="accionCronometro(${id}, 'finalizar')">✅ Finalizar</button>` : ''}
-                    ${estado === 'Terminado' ? `<button class="btn-accion btn-accept" onclick="accionOrdenEntregado(${id})">📦 Marcar entregado</button>` : ''}
-                </div>
+                    ${['Confirmado', 'En producción'].includes(estado) ? `<button class="btn-accion btn-delete" onclick="cancelarOrden(${id})">✖️ Cancelar</button>` : ''}
+                </div>` : (rolID === 2 && estado === 'Terminado' ? `<div style="display:flex;gap:10px;"><button class="btn-accion btn-accept" onclick="accionOrdenEntregado(${id})">📦 Marcar entregado</button></div>` : '')}
                 <div style="padding:14px;background:#f8f9fa;border-radius:10px;border:1px solid #e1e1e1;display:flex;justify-content:space-between;align-items:center;">
                     <div><strong>Tiempo estimado vs real</strong></div>
                     <div id="tiempoRestanteProduccion" style="font-weight:700;color:#2c3e50;">Cargando...</div>
@@ -1416,7 +1636,7 @@ async function verOrdenProduccion(id) {
                 <div style="padding:14px;background:#f8f9fa;border-radius:10px;border:1px solid #e1e1e1;">
                     <strong>Comparativo</strong>
                     <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-                        <div><strong>Estimado</strong><br>${comparativo.tiempo_estimado_horas || 0} h</div>
+                        <div><strong>Estimado Producción</strong><br>${tiempoEstimadoOrden || 0} h</div>
                         <div><strong>Real</strong><br>${comparativo.tiempo_real_horas || 0} h</div>
                         <div><strong>Diferencia</strong><br>${comparativo.diferencia_horas || 0} h</div>
                     </div>
@@ -1452,7 +1672,7 @@ async function verOrdenProduccion(id) {
             </div>`;
 
         document.getElementById('modalProdDetalle')?.remove();
-        document.getElementById('contenedorVistas').innerHTML += `<div id="modalProdDetalle" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:9999;"><div style="background:white; width:min(820px, 94vw); max-height:92vh; overflow:auto; border-radius:10px; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,.2);">${contenido}<div style="margin-top:18px;text-align:right;"><button class="btn-primary" style="background:#95a5a6;" onclick="cerrarModalDetalleProduccion()">Cerrar</button></div></div></div>`;
+        document.getElementById('contenedorVistas').innerHTML += `<div id="modalProdDetalle" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:9999;"><div style="position:relative;background:white; width:min(820px, 94vw); max-height:92vh; overflow:auto; border-radius:10px; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,.2);"><button type="button" class="btn-modal-cerrar" onclick="cerrarModalDetalleProduccion()" title="Cerrar">×</button>${contenido}<div style="margin-top:18px;text-align:right;"><button class="btn-primary" style="background:#95a5a6;" onclick="cerrarModalDetalleProduccion()">Cerrar</button></div></div></div>`;
 
         if (cronometroInterval) {
             clearInterval(cronometroInterval);
@@ -1489,7 +1709,10 @@ async function accionCronometro(id, accion) {
         }
         if (accion === 'iniciar' || accion === 'reanudar' || accion === 'finalizar') {
             const endpoint = `${API}/ordenes-produccion/${id}/cronometro/${accion}`;
-            const res = await fetch(endpoint, { method: 'POST', headers: headers(), body: JSON.stringify({ observaciones: accion === 'iniciar' ? 'Inicio de producción' : undefined }) });
+            const body = accion === 'iniciar'
+                ? { observaciones: 'Inicio de producción', id_maquina: document.getElementById('maquinaOrdenSelect')?.value, horas: document.getElementById('tiempoEstimadoOrden')?.value }
+                : { observaciones: undefined };
+            const res = await fetch(endpoint, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
             const data = await res.json();
             if (data.exito) {
                 mostrarNotificacion(`Cronómetro ${accion}do`, 'success');
@@ -1503,6 +1726,55 @@ async function accionCronometro(id, accion) {
     } catch (e) {
         mostrarNotificacion('Error de conexión', 'error');
     }
+}
+
+function actualizarBotonIniciar() {
+    const boton = document.getElementById('btnIniciarOrden');
+    if (!boton) return;
+    const maquina = document.getElementById('maquinaOrdenSelect')?.value;
+    const horas = Number(document.getElementById('tiempoEstimadoOrden')?.value);
+    boton.disabled = !maquina || !Number.isFinite(horas) || horas <= 0;
+}
+
+async function asignarMaquina(id) {
+    const select = document.getElementById('maquinaOrdenSelect');
+    const id_maquina = select?.value;
+    if (!id_maquina) { mostrarNotificacion('Selecciona una impresora disponible', 'warning'); return; }
+    try {
+        const res = await fetch(`${API}/ordenes-produccion/${id}/asignacion`, {
+            method: 'POST', headers: headers(), body: JSON.stringify({ id_maquina: parseInt(id_maquina) })
+        });
+        const data = await res.json();
+        if (data.exito) { mostrarNotificacion(data.mensaje || 'Impresora asignada', 'success'); verOrdenProduccion(id); }
+        else mostrarNotificacion('Error: ' + data.mensaje, 'error');
+    } catch (e) { mostrarNotificacion('Error de conexión', 'error'); }
+}
+
+async function guardarTiempoEstimado(id) {
+    const horas = Number(document.getElementById('tiempoEstimadoOrden')?.value);
+    if (!Number.isFinite(horas) || horas <= 0) {
+        mostrarNotificacion('Indica un tiempo estimado mayor que cero', 'warning');
+        return;
+    }
+    try {
+        const res = await fetch(`${API}/ordenes-produccion/${id}/tiempo-estimado`, {
+            method: 'PATCH', headers: headers(), body: JSON.stringify({ horas })
+        });
+        const data = await res.json();
+        if (data.exito) { mostrarNotificacion(data.mensaje, 'success'); verOrdenProduccion(id); }
+        else mostrarNotificacion('Error: ' + data.mensaje, 'error');
+    } catch (e) { mostrarNotificacion('Error de conexión', 'error'); }
+}
+
+async function cancelarOrden(id) {
+        mostrarConfirmacionWeb('¿Cancelar esta orden y liberar la impresora?', async () => {
+            try {
+        const res = await fetch(`${API}/ordenes-produccion/${id}/cancelar`, { method: 'POST', headers: headers() });
+        const data = await res.json();
+        if (data.exito) { mostrarNotificacion(data.mensaje, 'success'); cerrarModalDetalleProduccion(); actualizarProduccion(); }
+        else mostrarNotificacion('Error: ' + data.mensaje, 'error');
+            } catch (e) { mostrarNotificacion('Error de conexión', 'error'); }
+        });
 }
 
 async function accionOrdenEntregado(id) {
@@ -1530,6 +1802,10 @@ function resetearClave(id){document.getElementById('formResetPassword').reset();
 
 async function desactivarUsuario(id){
     try{const res=await fetch(`${API}/usuarios/${id}/estado`,{method:'PATCH',headers:headers()});const data=await res.json();if(data.exito){mostrarNotificacion('Usuario desactivado', 'success');cargarVista('usuarios');}else mostrarNotificacion('Error: '+data.mensaje, 'error');}catch(e){mostrarNotificacion('Error de conexión', 'error');}
+}
+
+async function activarUsuario(id){
+    try{const res=await fetch(`${API}/usuarios/${id}/activar`,{method:'PATCH',headers:headers()});const data=await res.json();if(data.exito){mostrarNotificacion('Usuario habilitado', 'success');cargarVista('usuarios');}else mostrarNotificacion('Error: '+data.mensaje, 'error');}catch(e){mostrarNotificacion('Error de conexión', 'error');}
 }
 
 document.getElementById('formCrearUsuario').addEventListener('submit',async(e)=>{

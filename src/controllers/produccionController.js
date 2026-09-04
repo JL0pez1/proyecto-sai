@@ -1,4 +1,5 @@
 const produccionModel = require('../models/produccionModel');
+const db = require('../config/db');
 
 const listarProduccion = async (req, res) => {
     try {
@@ -53,6 +54,16 @@ const agregarComentario = async (req, res) => {
         await produccionModel.inicializarTablas();
         const exito = await produccionModel.agregarComentario(req.params.id, req.usuario.id_usuario, req.body.mensaje);
         if (!exito) return res.status(400).json({ exito: false, mensaje: 'No se pudo guardar el comentario' });
+        const [destinatarios] = await db.query(
+            `SELECT id_usuario FROM usuarios WHERE estado = 'Activo' AND id_usuario <> ?`,
+            [req.usuario.id_usuario]
+        );
+        for (const destinatario of destinatarios) {
+            await db.query(
+                `INSERT INTO notificaciones (id_usuario_destino, id_orden, mensaje) VALUES (?, ?, ?)`,
+                [destinatario.id_usuario, req.params.id, `Nuevo comentario en la orden #${req.params.id}.`]
+            );
+        }
         res.status(201).json({ exito: true, mensaje: 'Comentario agregado', info: 'Notificación enviada al equipo correspondiente' });
     } catch (error) {
         console.error('Error al agregar comentario:', error);

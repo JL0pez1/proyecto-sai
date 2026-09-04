@@ -55,9 +55,9 @@ const inicializarTablas = async () => {
 const marcarMaquinaOcupada = async (connection, id_maquina) => {
     if (!id_maquina) return;
     if (connection) {
-        await connection.query('UPDATE maquinas SET estado = ? WHERE id_maquina = ?', ['Ocupada', id_maquina]);
+        await connection.query('UPDATE maquinas SET estado = ? WHERE id_maquina = ?', ['En uso', id_maquina]);
     } else {
-        await db.query('UPDATE maquinas SET estado = ? WHERE id_maquina = ?', ['Ocupada', id_maquina]);
+        await db.query('UPDATE maquinas SET estado = ? WHERE id_maquina = ?', ['En uso', id_maquina]);
     }
 };
 

@@ -59,6 +59,15 @@ body { background-color: #f4f7f6; color: #333; }
     z-index: 1000; /* Para que quede por encima de todo */
 }
 
+.btn-modal-cerrar {
+    position:absolute; top:10px; right:12px; width:30px; height:30px;
+    border:0; border-radius:50%; background:#ecf0f1; color:#2c3e50;
+    font-size:24px; line-height:24px; cursor:pointer; z-index:2;
+}
+.modal-content { position:relative; }
+.modal-overlay-input { z-index:11000; }
+.modal-overlay-confirmacion { z-index:12000; }
+
 .modal-content {
     background: white; padding: 30px; border-radius: 8px;
     width: 100%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);

@@ -57,6 +57,22 @@ const desactivarUsuario = async (req, res) => {
     }
 };
 
+const activarUsuario = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const activado = await userModel.activarUsuario(id);
+        if (activado) {
+            res.status(200).json({ exito: true, mensaje: 'Usuario activado correctamente' });
+        } else {
+            res.status(404).json({ exito: false, mensaje: 'Usuario no encontrado' });
+        }
+    } catch (error) {
+        console.error('Error al activar usuario:', error);
+        res.status(500).json({ exito: false, mensaje: 'Error interno del servidor' });
+    }
+};
+
 
 
 // Agrega esta nueva función:
@@ -89,5 +105,6 @@ module.exports = {
     listarUsuarios,
     actualizarUsuario, // Nueva
     desactivarUsuario,  
+    activarUsuario,
     reiniciarPassword 
 };
