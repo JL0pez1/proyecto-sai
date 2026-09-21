@@ -61,6 +61,7 @@ const clienteRoutes          = require('./src/routes/clienteRoutes');
 const cotizacionRoutes       = require('./src/routes/cotizacionRoutes');
 const produccionRoutes       = require('./src/routes/produccionRoutes');       // Sistema viejo (tabla 'produccion') — se mantiene hasta migrar el frontend
 const ordenesProduccionRoutes = require('./src/routes/ordenesProduccionRoutes'); // Sistema nuevo (tablas ordenes_produccion, tiempos_produccion, etc.)
+const reporteRoutes            = require('./src/routes/reporteRoutes');
 
 // ==========================================
 // USO DE RUTAS (Endpoints)
@@ -73,6 +74,7 @@ app.use('/api/clientes',          clienteRoutes);
 app.use('/api/cotizaciones',      cotizacionRoutes);
 app.use('/api/produccion',        produccionRoutes);
 app.use('/api/ordenes-produccion', ordenesProduccionRoutes);
+app.use('/api/reportes',         reporteRoutes);
 
 // Ruta de prueba base
 app.get('/', (req, res) => {

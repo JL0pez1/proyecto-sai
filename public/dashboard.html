@@ -5,6 +5,8 @@
     <title>Dashboard - SAI</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="/socket.io-client/socket.io.min.js"></script>
     <style>
         .badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600; }
@@ -313,6 +315,7 @@ if (rolID === 1) {
     htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
     htmlMenu += `<li><a href="#" onclick="cargarVista('controlTiempos')">⏱️ Control de tiempos</a></li>`;
     htmlMenu += `<li><a href="#" onclick="cargarVista('seguimientoImpresiones')">📌 Seguimiento de impresiones</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('reportes')">📊 Reportes</a></li>`;
 } else if (rolID === 2) {
     htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
     htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
@@ -487,6 +490,74 @@ function mostrarNotificacion(texto, tipo = 'info', duracion = 4000) {
     n.textContent = texto;
     wrapper.appendChild(n);
     setTimeout(() => n.remove(), duracion);
+}
+
+let reporteActual = null;
+let graficosReporte = {};
+
+async function cargarReporte() {
+    const inicio = document.getElementById('reporteInicio')?.value;
+    const fin = document.getElementById('reporteFin')?.value;
+    const periodo = document.getElementById('reportePeriodo')?.value || 'mes';
+    if (!inicio || !fin || inicio > fin) {
+        mostrarNotificacion('El rango de fechas no es válido', 'warning');
+        return;
+    }
+    try {
+        const params = new URLSearchParams({ inicio, fin, periodo });
+        const res = await fetch(`${API}/reportes?${params}`, { headers: headers() });
+        const data = await res.json();
+        if (!data.exito) throw new Error(data.mensaje || 'No fue posible generar el reporte');
+        reporteActual = data.datos;
+        renderReporte(data.datos);
+    } catch (error) {
+        mostrarNotificacion(error.message || 'Error al cargar reportes', 'error');
+    }
+}
+
+function renderReporte(reporte) {
+    const r = reporte.resumen;
+    const moneda = value => `Q ${Number(value || 0).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('statsReportes').innerHTML = `
+        <div class="card-stat"><div class="numero">${r.cotizaciones || 0}</div><div class="etiqueta">Cotizaciones</div></div>
+        <div class="card-stat"><div class="numero" style="color:#16805c;">${r.ventas || 0}</div><div class="etiqueta">Ventas aceptadas</div></div>
+        <div class="card-stat"><div class="numero" style="color:#16805c;font-size:19px;">${moneda(r.ingresos)}</div><div class="etiqueta">Ingresos</div></div>
+        <div class="card-stat"><div class="numero" style="color:#c0392b;">${r.atrasos || 0}</div><div class="etiqueta">Atrasos</div></div>
+        <div class="card-stat"><div class="numero" style="color:#2980b9;">${r.clientes_nuevos || 0}</div><div class="etiqueta">Clientes nuevos</div></div>`;
+
+    Object.values(graficosReporte).forEach(grafico => grafico.destroy());
+    const tendencia = reporte.tendencia || [];
+    graficosReporte.tendencia = new Chart(document.getElementById('graficoTendencia'), {
+        type: 'line', data: { labels: tendencia.map(x => x.periodo), datasets: [
+            { label: 'Ventas', data: tendencia.map(x => x.ventas), borderColor: '#16805c', backgroundColor: '#16805c33', tension: .3 },
+            { label: 'Cotizaciones', data: tendencia.map(x => x.cotizaciones), borderColor: '#2980b9', tension: .3 }
+        ] }, options: { responsive: true, maintainAspectRatio: false }
+    });
+    const productos = reporte.productos || [];
+    graficosReporte.productos = new Chart(document.getElementById('graficoProductos'), {
+        type: 'bar', data: { labels: productos.map(x => x.producto), datasets: [{ label: 'Unidades', data: productos.map(x => x.cantidad), backgroundColor: '#f39c12' }] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y' }
+    });
+    const clientes = reporte.clientes || [];
+    document.getElementById('tablaClientesReporte').innerHTML = clientes.length ? `<table class="tabla-sai reporte-tabla"><thead><tr><th>Cliente</th><th>Compras</th><th>Ingresos</th></tr></thead><tbody>${clientes.map(c => `<tr><td>${escaparCatalogo(c.cliente)}</td><td>${c.compras}</td><td>${moneda(c.ingresos)}</td></tr>`).join('')}</tbody></table>` : '<p class="loading">No hay ventas en el periodo.</p>';
+    graficosReporte.produccion = new Chart(document.getElementById('graficoProduccion'), {
+        type: 'doughnut', data: { labels: ['Exitos', 'En producción', 'Atrasos', 'Canceladas'], datasets: [{ data: [r.exitos || 0, r.en_produccion || 0, r.atrasos || 0, r.canceladas || 0], backgroundColor: ['#16805c', '#2980b9', '#c0392b', '#95a5a6'] }] },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+function exportarReporteExcel() {
+    if (!reporteActual || !window.XLSX) {
+        mostrarNotificacion('Primero genera un reporte', 'warning');
+        return;
+    }
+    const libro = XLSX.utils.book_new();
+    const resumen = Object.entries(reporteActual.resumen).map(([indicador, valor]) => ({ Indicador: indicador, Valor: valor }));
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(resumen), 'Resumen');
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(reporteActual.tendencia), 'Tendencia');
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(reporteActual.productos), 'Productos');
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(reporteActual.clientes), 'Clientes');
+    XLSX.writeFile(libro, `reporte-sai-${reporteActual.rango.inicio}-${reporteActual.rango.fin}.xlsx`);
 }
 
 function formatearTiempoRestante(fechaInicio, fechaLimite, ahora = Date.now()) {
@@ -664,6 +735,34 @@ async function cargarVista(modulo) {
             <div id="notificacionesProduccion" style="margin-top:20px;"></div>`;
         await actualizarProduccion();
         await cargarNotificacionesProduccion();
+    } else if (modulo === 'reportes') {
+        if (rolID !== 1) return;
+        titulo.innerText = '📊 Reportes y analítica';
+        const hoy = new Date();
+        const inicio = `${hoy.getFullYear()}-01-01`;
+        const fin = hoy.toISOString().slice(0, 10);
+        contenedor.innerHTML = `
+            <div class="modulo-header">
+                <h3>Resumen comercial y de producción</h3>
+                <button class="btn-primary" style="width:auto;padding:10px 18px;background:#16805c;" onclick="exportarReporteExcel()">⬇️ Exportar Excel</button>
+            </div>
+            <div class="filtros-row reporte-filtros">
+                <label>Desde <input type="date" id="reporteInicio" value="${inicio}"></label>
+                <label>Hasta <input type="date" id="reporteFin" value="${fin}"></label>
+                <label>Agrupar por <select id="reportePeriodo">
+                    <option value="dia">Día</option><option value="semana">Semana</option>
+                    <option value="mes" selected>Mes</option><option value="trimestre">Trimestre</option><option value="anual">Año</option>
+                </select></label>
+                <button class="btn-primary" style="width:auto;padding:8px 16px;" onclick="cargarReporte()">Actualizar</button>
+            </div>
+            <div class="cards-row" id="statsReportes"><div class="loading">Cargando...</div></div>
+            <div class="reporte-grid">
+                <section class="reporte-panel"><h4>Ventas y cotizaciones</h4><canvas id="graficoTendencia"></canvas></section>
+                <section class="reporte-panel"><h4>Productos más solicitados</h4><canvas id="graficoProductos"></canvas></section>
+                <section class="reporte-panel"><h4>Clientes más frecuentes</h4><div id="tablaClientesReporte"></div></section>
+                <section class="reporte-panel"><h4>Indicadores de producción</h4><canvas id="graficoProduccion"></canvas></section>
+            </div>`;
+        await cargarReporte();
     } else if (modulo === 'seguimientoImpresiones') {
         titulo.innerText = '📌 Seguimiento de impresiones';
         contenedor.innerHTML = `
