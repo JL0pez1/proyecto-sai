@@ -405,19 +405,31 @@ const pausarCronometro = async (id_orden, id_usuario, motivo) => {
     }
 };
 
-const reanudarCronometro = async (id_orden, id_usuario) => {
+const reanudarCronometro = async (id_orden, id_usuario, motivo) => {
     await asegurarColumnasOrden();
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
+
+        // Inserta el nuevo segmento activo y guarda el motivo en observaciones
         await connection.query(
-            `INSERT INTO tiempos_produccion (id_orden, id_usuario, inicio, estado) VALUES (?, ?, NOW(), 'Activo')`,
-            [id_orden, id_usuario]
+            `INSERT INTO tiempos_produccion (id_orden, id_usuario, inicio, estado, observaciones)
+             VALUES (?, ?, NOW(), 'Activo', ?)`,
+            [id_orden, id_usuario, motivo ? `[Reanudación] ${motivo}` : null]
         );
+
         await connection.query(
             `UPDATE ordenes_produccion SET estado_actual = 'En producción', fecha_inicio_real = COALESCE(fecha_inicio_real, NOW()) WHERE id_orden = ?`,
             [id_orden]
         );
+
+        // ✅ Notificación a Ventas (rol 2) — igual que pausar/iniciar
+        await notificarVentas(
+            connection,
+            id_orden,
+            `La orden #${id_orden} fue reanudada por Producción${motivo ? `: ${motivo}` : '.'}`
+        );
+
         await connection.commit();
     } catch (error) {
         await connection.rollback();
@@ -484,7 +496,7 @@ const finalizarCronometro = async (id_orden, id_usuario) => {
     }
 };
 
-const cancelarOrden = async (id_orden, id_usuario) => {
+const cancelarOrden = async (id_orden, id_usuario, motivo) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
@@ -499,7 +511,17 @@ const cancelarOrden = async (id_orden, id_usuario) => {
             await connection.rollback();
             return { exito: false, mensaje: 'Una orden entregada no se puede cancelar' };
         }
-        await connection.query(`UPDATE tiempos_produccion SET fin = NOW(), estado = 'Finalizado' WHERE id_orden = ? AND estado = 'Activo'`, [id_orden]);
+
+        // ✅ Cierra el segmento activo GUARDANDO el motivo en observaciones
+        await connection.query(
+            `UPDATE tiempos_produccion
+             SET fin = NOW(),
+                 estado = 'Finalizado',
+                 observaciones = CONCAT(COALESCE(observaciones,''), ?)
+             WHERE id_orden = ? AND estado = 'Activo'`,
+            [motivo ? `\n[Cancelación] ${motivo}` : '\n[Cancelación]', id_orden]
+        );
+
         const [asignaciones] = await connection.query(
             `SELECT id_maquina FROM orden_maquina WHERE id_orden = ? ORDER BY id_asignacion DESC LIMIT 1`, [id_orden]
         );
@@ -508,7 +530,14 @@ const cancelarOrden = async (id_orden, id_usuario) => {
         }
         await connection.query(`UPDATE ordenes_produccion SET estado_actual = 'Cancelado' WHERE id_orden = ?`, [id_orden]);
         await registrarHistorial(connection, id_orden, ordenes[0].estado_actual, 'Cancelado', id_usuario);
-        await notificarVentas(connection, id_orden, `La orden #${id_orden} fue cancelada por Producción.`);
+
+        // ✅ Notificación con el motivo incluido
+        await notificarVentas(
+            connection,
+            id_orden,
+            `La orden #${id_orden} fue cancelada por Producción${motivo ? `: ${motivo}` : '.'}`
+        );
+
         await connection.commit();
         return { exito: true, mensaje: 'Orden cancelada y máquina liberada' };
     } catch (error) {

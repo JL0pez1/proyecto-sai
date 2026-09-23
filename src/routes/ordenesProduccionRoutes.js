@@ -109,7 +109,7 @@ router.post('/:id/cronometro/pausar', verificarToken, permisoEditar, async (req,
 
 router.post('/:id/cronometro/reanudar', verificarToken, permisoEditar, async (req, res) => {
     try {
-        const r = await ctrl.reanudarCronometro(req.params.id, req.usuario.id_usuario);
+        const r = await ctrl.reanudarCronometro(req.params.id, req.usuario.id_usuario, req.body.motivo);
         res.json(r);
     } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
 });
@@ -123,7 +123,7 @@ router.post('/:id/cronometro/finalizar', verificarToken, permisoEditar, async (r
 
 router.post('/:id/cancelar', verificarToken, permisoEditar, async (req, res) => {
     try {
-        res.json(await ctrl.cancelarOrden(req.params.id, req.usuario.id_usuario));
+        res.json(await ctrl.cancelarOrden(req.params.id, req.usuario.id_usuario, req.body.motivo));
     } catch (e) { res.status(500).json({ exito: false, mensaje: e.message }); }
 });
 

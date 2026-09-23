@@ -666,21 +666,29 @@ async function cargarVista(modulo) {
             document.getElementById('tablaUsuariosBody').innerHTML = '<tr><td colspan="5" style="color:red;text-align:center;">Error al cargar</td></tr>';
         }
 
-    } else if (modulo === 'clientes') {
-        titulo.innerText = 'Gestión de Clientes';
-        contenedor.innerHTML = `
-            <div class="modulo-header">
-                <h3>Lista de Clientes</h3>
-                <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCliente()">+ Nuevo Cliente</button>
-            </div>
-           
-            </div>
-            <div class="cards-row" id="statsClientes"></div>
-            <table class="tabla-sai">
-                <thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>NIT/DPI</th><th>Tipo</th><th>Desc.</th><th style="text-align:center;">Acciones</th></tr></thead>
-                <tbody id="tablaClientesBody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
-            </table>`;
-        await cargarClientes();
+   } else if (modulo === 'clientes') {
+    titulo.innerText = 'Gestión de Clientes';
+    contenedor.innerHTML = `
+        <div class="modulo-header">
+            <h3>Lista de Clientes</h3>
+            <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCliente()">+ Nuevo Cliente</button>
+        </div>
+        <div class="filtros-row">
+            <input type="text" id="filtroCliente" placeholder="Buscar por nombre o NIT/DPI..." oninput="filtrarClientes()" style="flex:1;min-width:220px;">
+            <select id="filtroTipoCliente" onchange="filtrarClientes()">
+                <option value="">Todos los tipos</option>
+                <option value="Regular">Regular</option>
+                <option value="Frecuente">Frecuente</option>
+                <option value="Preferencial">Preferencial</option>
+                <option value="VIP">VIP</option>
+            </select>
+        </div>
+        <div class="cards-row" id="statsClientes"></div>
+        <table class="tabla-sai">
+            <thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>NIT/DPI</th><th>Tipo</th><th>Desc.</th><th style="text-align:center;">Acciones</th></tr></thead>
+            <tbody id="tablaClientesBody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+        </table>`;
+    await cargarClientes();
 
     } else if (modulo === 'cotizaciones') {
         titulo.innerText = 'Gestión de Cotizaciones';
@@ -771,7 +779,7 @@ async function cargarVista(modulo) {
             
             <!-- NUEVA BARRA DE BÚSQUEDA Y FILTRO -->
             <div class="filtros-row">
-                <input type="text" id="filtroOrdenes" placeholder="Buscar por # cotización, orden o cliente..." oninput="filtrarOrdenes()" style="flex:1;min-width:220px;">
+                <input type="text" id="filtroOrdenes" placeholder="Buscar por orden o cliente..." oninput="filtrarOrdenes()" style="flex:1;min-width:220px;">
                 <select id="filtroEstadoOrden" onchange="filtrarOrdenes()">
                     <option value="">Todos los estados</option>
                     <option value="Confirmado">Confirmado</option>
@@ -805,7 +813,7 @@ async function cargarClientes() {
         const res  = await fetch(`${API}/clientes`, { headers: headers() });
         const data = await res.json();
         todosClientes = data.datos || [];
-        renderClientes(todosClientes);
+        filtrarClientes();              // ← respeta el filtro actual
         const t=todosClientes.length, v=todosClientes.filter(c=>c.tipo_cliente==='VIP').length,
               p=todosClientes.filter(c=>c.tipo_cliente==='Preferencial').length,
               f=todosClientes.filter(c=>c.tipo_cliente==='Frecuente').length;
