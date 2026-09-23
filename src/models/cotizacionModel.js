@@ -25,7 +25,7 @@ const obtenerCotizacionPorId = async (id) => {
         LEFT JOIN usuarios u ON c.id_usuario = u.id_usuario
         WHERE c.id_cotizacion = ?
     `, [id]);
-    
+
     if (cotRows.length === 0) return null;
 
     await asegurarColumnasDetalle();
@@ -80,7 +80,7 @@ const validarAceptacion = async (id) => {
     return { ok: true };
 };
 
-// Obtar el historial de cotizaciones de un cliente específico
+// Obtener el historial de cotizaciones de un cliente específico
 const obtenerCotizacionesPorCliente = async (id_cliente) => {
     const [rows] = await db.query(`
         SELECT c.*, u.nombre_completo AS nombre_usuario
@@ -92,20 +92,42 @@ const obtenerCotizacionesPorCliente = async (id_cliente) => {
     return rows;
 };
 
-// Transacción segura para crear cotización y registrar dinámicamente sus ítems
+// =====================================================
+// CREAR COTIZACIÓN — Ahora aplica descuento del cliente
+// =====================================================
 const crearCotizacion = async (cotizacion, detalle) => {
     await asegurarColumnasDetalle();
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
 
+        // 1. Calcular subtotal bruto sumando los subtotales del detalle
+        const subtotalBruto = (detalle || []).reduce(
+            (s, d) => s + (parseFloat(d.subtotal) || 0), 0
+        );
+
+        // 2. Aplicar descuento del cliente
+        const desc = parseFloat(cotizacion.descuento_porcentaje) || 0;
+        const montoDescuento = subtotalBruto * desc / 100;
+        const total = subtotalBruto - montoDescuento;
+
+        // 3. Insertar cotización con todos los montos
         const [cotResult] = await connection.query(`
-            INSERT INTO cotizaciones (id_cliente, id_usuario, estado, total)
-            VALUES (?, ?, 'Pendiente', 0)
-        `, [cotizacion.id_cliente, cotizacion.id_usuario]);
-        
+            INSERT INTO cotizaciones
+                (id_cliente, id_usuario, estado, subtotal_bruto, descuento_porcentaje, monto_descuento, total)
+            VALUES (?, ?, 'Pendiente', ?, ?, ?, ?)
+        `, [
+            cotizacion.id_cliente,
+            cotizacion.id_usuario,
+            subtotalBruto,
+            desc,
+            montoDescuento,
+            total
+        ]);
+
         const id_cotizacion = cotResult.insertId;
 
+        // 4. Insertar detalle
         if (detalle && detalle.length > 0) {
             for (const item of detalle) {
                 await connection.query(`
@@ -121,13 +143,6 @@ const crearCotizacion = async (cotizacion, detalle) => {
                     item.subtotal
                 ]);
             }
-            
-            // Auto-calcular y actualizar la sumatoria total en la cotización padre
-            await connection.query(`
-                UPDATE cotizaciones
-                SET total = (SELECT SUM(subtotal) FROM detalle_cotizaciones WHERE id_cotizacion = ?)
-                WHERE id_cotizacion = ?
-            `, [id_cotizacion, id_cotizacion]);
         }
 
         await connection.commit();
@@ -150,21 +165,32 @@ const actualizarEstado = async (id, estado) => {
 };
 
 // Lógica de gamificación/fidelidad: recalcular nivel de cliente en base a umbrales configurados
+
 const actualizarNivelCliente = async (id_cliente) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
 
-        // 1. Obtener sumatorias acumuladas de cotizaciones que ya fueron aceptadas
+        // 1. Obtener datos actuales del cliente
+        const [clienteRows] = await connection.query(
+            `SELECT tipo_cliente, descuento_porcentaje FROM clientes WHERE id_cliente = ? FOR UPDATE`,
+            [id_cliente]
+        );
+        if (!clienteRows.length) {
+            await connection.rollback();
+            return;
+        }
+        const descuentoActual = parseFloat(clienteRows[0].descuento_porcentaje) || 0;
+
+        // 2. Contar cotizaciones aceptadas del cliente
         const [totales] = await connection.query(`
             SELECT COUNT(*) AS total_cotizaciones, COALESCE(SUM(total), 0) AS monto_total
             FROM cotizaciones
             WHERE id_cliente = ? AND estado = 'Aceptada'
         `, [id_cliente]);
-        
         const { total_cotizaciones, monto_total } = totales[0];
 
-        // 2. Encontrar cuál es el nivel máximo alcanzado según las políticas de tu tabla niveles_cliente
+        // 3. Encontrar el nivel que le corresponde por umbrales
         const [niveles] = await connection.query(`
             SELECT nombre, descuento_porcentaje
             FROM niveles_cliente
@@ -173,14 +199,21 @@ const actualizarNivelCliente = async (id_cliente) => {
             LIMIT 1
         `, [monto_total, total_cotizaciones]);
 
-        // 3. Aplicar el ascenso automático al cliente
-        if (niveles.length > 0) {
-            const { nombre, descuento_porcentaje } = niveles[0];
+        if (!niveles.length) {
+            await connection.commit();
+            return;
+        }
+
+        const { nombre, descuento_porcentaje } = niveles[0];
+        const nuevoDescuento = parseFloat(descuento_porcentaje) || 0;
+
+        // ✅ SOLO actualizar si el nuevo descuento es MAYOR al actual (nunca degradar)
+        if (nuevoDescuento > descuentoActual) {
             await connection.query(`
                 UPDATE clientes
                 SET tipo_cliente = ?, descuento_porcentaje = ?
                 WHERE id_cliente = ?
-            `, [nombre, descuento_porcentaje, id_cliente]);
+            `, [nombre, nuevoDescuento, id_cliente]);
         }
 
         await connection.commit();
@@ -237,7 +270,6 @@ const obtenerInsumos = async () => {
 
 // Obtener máquinas disponibles
 const obtenerMaquinas = async () => {
-    // Corregido: Ahora busca en la tabla "maquinas" en lugar de "estado_maquina"
     const [rows] = await db.query(`
         SELECT * FROM maquinas WHERE estado = 'Disponible' ORDER BY nombre
     `);

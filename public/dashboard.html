@@ -68,7 +68,169 @@
         .seccion-cliente-nuevo h4 { margin:0 0 12px; color:#1a5276; font-size:14px; }
 
         .precio-auto { background:#eafaf1; border:1px solid #a9dfbf; border-radius:6px; padding:8px 12px; margin-top:8px; font-size:13px; color:#1e8449; display:none; }
-    </style>
+   
+        /* ===== MODAL ADMIN (Catálogos / Impresoras) ===== */
+.admin-modal { max-width: 720px; padding: 28px !important; }
+.admin-modal.admin-modal-compact { max-width: 640px; }
+
+.admin-modal-header {
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #eef0f2;
+}
+.admin-eyebrow {
+    margin: 0 0 4px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: #8e9aa6;
+}
+.admin-modal-header h3 { margin: 0 0 4px; font-size: 20px; color: #2c3e50; }
+.admin-description { margin: 0; font-size: 13px; color: #7f8c8d; }
+
+.admin-section { margin-top: 8px; }
+.admin-section-header {
+    display: flex; justify-content: space-between;
+    align-items: flex-end; gap: 12px; margin-bottom: 12px;
+}
+.admin-section-header h4 { margin: 0 0 2px; font-size: 15px; color: #2c3e50; }
+.admin-section-header p { margin: 0; font-size: 12px; color: #95a5a6; }
+
+.admin-add-button {
+    width: auto !important;
+    padding: 8px 16px !important;
+    font-size: 13px; border-radius: 6px;
+}
+.admin-count {
+    font-size: 12px; color: #95a5a6;
+    background: #f4f6f8; padding: 4px 10px; border-radius: 999px;
+}
+
+.admin-list-toolbar {
+    display: flex; align-items: center;
+    gap: 10px; margin: 6px 0 12px;
+}
+.admin-list-toolbar label {
+    font-size: 12px; color: #7f8c8d;
+    font-weight: 600; white-space: nowrap;
+}
+.admin-search {
+    flex: 1; padding: 9px 12px;
+    border: 1px solid #dfe4e8; border-radius: 8px;
+    font-size: 13px; background: #fafbfc;
+    transition: all .15s; box-sizing: border-box;
+}
+.admin-search:focus {
+    outline: none; border-color: #3498db;
+    background: #fff; box-shadow: 0 0 0 3px rgba(52,152,219,.12);
+}
+
+.admin-list {
+    display: flex; flex-direction: column;
+    gap: 8px; max-height: 340px;
+    overflow-y: auto; padding-right: 4px;
+}
+.admin-list-item {
+    display: flex; justify-content: space-between;
+    align-items: center; gap: 12px;
+    padding: 12px 14px; background: #fafbfc;
+    border: 1px solid #eef0f2; border-radius: 10px;
+    transition: all .15s;
+}
+.admin-list-item:hover {
+    background: #fff; border-color: #d6dde3;
+    box-shadow: 0 2px 6px rgba(0,0,0,.04);
+}
+.admin-list-item > div:first-child {
+    display: flex; flex-direction: column;
+    gap: 2px; min-width: 0;
+}
+.admin-list-item strong { font-size: 14px; color: #2c3e50; }
+.admin-list-item > div:first-child span { font-size: 12px; color: #95a5a6; }
+
+.admin-list-meta {
+    display: flex; align-items: center;
+    gap: 10px; flex-shrink: 0;
+}
+.admin-list-meta > span {
+    font-size: 12px; color: #55606b;
+    background: #eef2f5; padding: 4px 9px;
+    border-radius: 6px; white-space: nowrap;
+}
+.admin-list-actions { display: flex; gap: 6px; }
+.admin-list-actions .btn-accion {
+    padding: 5px 10px; font-size: 11.5px; margin: 0;
+}
+
+.admin-status {
+    font-size: 11px !important; font-weight: 700;
+    padding: 4px 10px !important; border-radius: 999px !important;
+}
+.admin-status.is-ready   { background: #d1f2e0 !important; color: #0f5132 !important; }
+.admin-status.is-warning { background: #fff3cd !important; color: #856404 !important; }
+
+.admin-empty {
+    padding: 20px; text-align: center; color: #95a5a6;
+    font-size: 13px; background: #fafbfc;
+    border-radius: 10px; border: 1px dashed #dfe4e8;
+}
+
+/* Form de impresoras (dentro del modal) */
+.admin-form {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 8px; margin-bottom: 12px; padding: 12px;
+    background: #f7f9fb; border: 1px solid #eef0f2;
+    border-radius: 10px; align-items: center;
+}
+.admin-form input {
+    padding: 9px 11px; border: 1px solid #dfe4e8;
+    border-radius: 8px; font-size: 13px;
+    background: #fff; width: 100%; box-sizing: border-box;
+}
+.admin-form input:focus {
+    outline: none; border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52,152,219,.12);
+}
+.admin-form-actions {
+    display: flex; gap: 6px;
+    grid-column: 1 / -1; justify-content: flex-end;
+}
+.admin-form .btn-primary,
+.admin-form .btn-secondary {
+    width: auto !important;
+    padding: 8px 14px !important;
+    font-size: 13px; border-radius: 7px;
+    border: none; cursor: pointer;
+}
+.btn-secondary {
+    background: #ecf0f1; color: #55606b; font-weight: 600;
+}
+.btn-secondary:hover { background: #dfe4e8; }
+
+/* Modal form insumo (Nuevo/Editar insumo) */
+.admin-form-modal { max-width: 520px; padding: 28px !important; }
+.admin-form-modal-fields {
+    display: flex; flex-direction: column;
+    gap: 12px; margin-top: 16px;
+    padding: 0; background: transparent; border: none;
+}
+.admin-form-modal-fields label {
+    display: flex; flex-direction: column;
+    gap: 5px; font-size: 12px;
+    font-weight: 600; color: #55606b;
+}
+.admin-form-modal-fields input,
+.admin-form-modal-fields select {
+    padding: 9px 11px; border: 1px solid #dfe4e8;
+    border-radius: 8px; font-size: 13px;
+    background: #fff; font-weight: 400; color: #2c3e50;
+}
+.admin-form-modal-fields input:focus,
+.admin-form-modal-fields select:focus {
+    outline: none; border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52,152,219,.12);
+}
+   </style>
 </head>
 <body>
 <div class="dashboard-layout">
@@ -870,7 +1032,7 @@ function abrirModalCliente(cliente=null) {
         document.getElementById('clienteCorreo').value  = cliente.correo||'';
         document.getElementById('clienteNit').value     = cliente.nit_dpi||'';
         document.getElementById('clienteTipo').value    = cliente.tipo_cliente||'Regular';
-        document.getElementById('clienteDescuento').value=cliente.descuento_porcentaje||0;
+       
         document.getElementById('clientePapel').value   = cliente.tipo_papel_preferido||'';
         document.getElementById('clienteDiseno').value  = cliente.diseno_frecuente||'';
     }

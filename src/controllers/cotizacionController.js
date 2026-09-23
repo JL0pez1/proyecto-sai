@@ -1,6 +1,15 @@
 const cotizacionModel = require('../models/cotizacionModel');
 const clienteModel    = require('../models/clienteModel');
 const ordenesProduccionController = require('./ordenesProduccionController');
+const db = require('../config/db');
+
+// Mapa de descuentos por tipo de cliente (igual que en el frontend)
+const DESCUENTOS_POR_TIPO = {
+    Regular:      0,
+    Frecuente:    5,
+    Preferencial: 10,
+    VIP:          15
+};
 
 const listarCotizaciones = async (req, res) => {
     try {
@@ -66,11 +75,12 @@ const crearCotizacion = async (req, res) => {
     }
 
     try {
-        const id_usuario = req.usuario.id_usuario; 
+        const id_usuario = req.usuario.id_usuario;
         let clienteId = id_cliente;
 
         // Flujo condicional: Si se llenaron los campos de "Cliente Nuevo", se registra antes de la cotización
         if (cliente_nuevo && cliente_nuevo.nombre) {
+            const tipoCliente = cliente_nuevo.tipo_cliente || 'Regular';
             clienteId = await clienteModel.crearCliente({
                 nombre:               cliente_nuevo.nombre,
                 telefono:             cliente_nuevo.telefono || null,
@@ -78,8 +88,8 @@ const crearCotizacion = async (req, res) => {
                 nit_dpi:              cliente_nuevo.nit_dpi || null,
                 tipo_papel_preferido: cliente_nuevo.tipo_papel_preferido || null,
                 diseno_frecuente:     cliente_nuevo.diseno_frecuente || null,
-                tipo_cliente:         'Regular', // Valor inicial por defecto
-                descuento_porcentaje: 0,
+                tipo_cliente:         tipoCliente,
+                descuento_porcentaje: DESCUENTOS_POR_TIPO[tipoCliente] ?? 0,
                 id_usuario_asignado:  id_usuario
             });
         }
@@ -88,14 +98,22 @@ const crearCotizacion = async (req, res) => {
             return res.status(400).json({ exito: false, mensaje: 'Debes seleccionar un cliente o ingresar uno nuevo' });
         }
 
+        // Leer el descuento del cliente (existente o recién creado)
+        const [clienteRows] = await db.query(
+            'SELECT descuento_porcentaje FROM clientes WHERE id_cliente = ?',
+            [clienteId]
+        );
+        const descuentoPorcentaje = parseFloat(clienteRows[0]?.descuento_porcentaje) || 0;
+
         const puedeAsignarMaquina = [1, 3].includes(parseInt(req.usuario.id_rol));
         const detalleSeguro = detalle.map(item => ({
             ...item,
             id_maquina: puedeAsignarMaquina ? (item.id_maquina || null) : null
         }));
 
+        // Pasar el descuento al modelo para que se aplique en el total
         const id_cotizacion = await cotizacionModel.crearCotizacion(
-            { id_cliente: clienteId, id_usuario },
+            { id_cliente: clienteId, id_usuario, descuento_porcentaje: descuentoPorcentaje },
             detalleSeguro
         );
 

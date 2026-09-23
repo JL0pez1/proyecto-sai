@@ -118,11 +118,11 @@ const eliminarCliente = async (req, res) => {
 
 const obtenerDescuentoPorTipo = (tipo) => {
     switch(tipo) {
-        case 'VIP': return 7;
-        case 'Preferencial': return 4;
-        case 'Frecuente': return 2;
-        case 'Regular': 
-        default: return 0;
+        case 'VIP':           return 15;
+        case 'Preferencial':  return 10;
+        case 'Frecuente':     return 5;
+        case 'Regular':
+        default:              return 0;
     }
 };
 

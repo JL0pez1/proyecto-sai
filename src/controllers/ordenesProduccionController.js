@@ -615,36 +615,44 @@ const limpiarNotificacionesLeidas = async (id_usuario) => {
 // =====================================================
 // REVISIÓN AUTOMÁTICA DE RETRASOS (REQ004-004) — la llama un cron/interval
 // =====================================================
+
 const revisarRetrasos = async () => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
 
-                await asegurarColumnasOrden();
-                const [atrasadas] = await connection.query(`
-                        SELECT o.id_orden, o.tiempo_estimado_horas, MIN(t.inicio) AS inicio_real
-                        FROM ordenes_produccion o
-                        INNER JOIN tiempos_produccion t ON t.id_orden = o.id_orden
-                        WHERE o.estado_actual = 'En producción'
-                            AND o.alerta_retraso = 0
-                            AND o.tiempo_estimado_horas > 0
-                        GROUP BY o.id_orden, o.tiempo_estimado_horas
-                        HAVING MIN(t.inicio) <= DATE_SUB(NOW(), INTERVAL o.tiempo_estimado_horas HOUR)
-                `);
+        await asegurarColumnasOrden();
+
+        // ✅ Suma la duración real de TODOS los segmentos (cerrados + activo)
+        // y la compara contra el tiempo estimado
+        const [atrasadas] = await connection.query(`
+            SELECT 
+                o.id_orden,
+                o.tiempo_estimado_horas,
+                (SUM(TIMESTAMPDIFF(SECOND, t.inicio, COALESCE(t.fin, NOW()))) / 3600) AS horas_reales
+            FROM ordenes_produccion o
+            INNER JOIN tiempos_produccion t ON t.id_orden = o.id_orden
+            WHERE o.estado_actual = 'En producción'
+                AND o.alerta_retraso = 0
+                AND o.tiempo_estimado_horas > 0
+            GROUP BY o.id_orden, o.tiempo_estimado_horas
+            HAVING horas_reales >= o.tiempo_estimado_horas
+        `);
 
         if (atrasadas.length > 0) {
             const [destinatarios] = await connection.query(
                 `SELECT id_usuario FROM usuarios WHERE id_rol IN (1,3) AND estado = 'Activo'`
             );
-            for (const { id_orden } of atrasadas) {
+            for (const { id_orden, horas_reales, tiempo_estimado_horas } of atrasadas) {
                 await connection.query(
-                    `UPDATE ordenes_produccion SET alerta_retraso = 1 WHERE id_orden = ?`, [id_orden]
+                    `UPDATE ordenes_produccion SET alerta_retraso = 1 WHERE id_orden = ?`,
+                    [id_orden]
                 );
                 await crearNotificacion(
                     connection,
                     destinatarios.map(u => u.id_usuario),
                     id_orden,
-                    `⚠️ La orden #${id_orden} superó su fecha de entrega estimada y sigue en producción.`
+                    `⚠️ La orden #${id_orden} superó el tiempo estimado (${Number(tiempo_estimado_horas).toFixed(1)}h estimado vs ${Number(horas_reales).toFixed(1)}h reales) y sigue en producción.`
                 );
             }
         }
