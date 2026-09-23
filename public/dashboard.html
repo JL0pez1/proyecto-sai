@@ -159,14 +159,14 @@
                 <div class="form-group"><label>Correo</label><input type="email" id="clienteCorreo" placeholder="juan@email.com"></div>
                 <div class="form-group"><label>NIT / DPI</label><input type="text" id="clienteNit" placeholder="12345678"></div>
                 <div class="form-group"><label>Tipo de Cliente</label>
-                    <select id="clienteTipo">
-                        <option value="Regular">Regular</option>
-                        <option value="Frecuente">Frecuente</option>
-                        <option value="Preferencial">Preferencial</option>
-                        <option value="VIP">VIP</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Descuento (%)</label><input type="number" id="clienteDescuento" min="0" max="100" step="0.01" value="0"></div>
+    <select id="clienteTipo" onchange="actualizarDescuentoPorTipo()">
+        <option value="Regular">Regular</option>
+        <option value="Frecuente">Frecuente</option>
+        <option value="Preferencial">Preferencial</option>
+        <option value="VIP">VIP</option>
+    </select>
+</div>
+
                 <div class="form-group"><label>Papel Preferido</label><input type="text" id="clientePapel" placeholder="Ej. Bond 75g"></div>
                 <div class="form-group full"><label>Diseño Frecuente</label>
                     <textarea id="clienteDiseno" rows="2" placeholder="Describe qué suele imprimir..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;resize:vertical;box-sizing:border-box;"></textarea>
@@ -717,12 +717,7 @@ async function cargarVista(modulo) {
             </div>
             <div class="cards-row" id="statsProduccion"></div>
             <div class="filtros-row">
-                <input type="text" id="filtroOrdenes" placeholder="Buscar cliente, estado o prioridad..." oninput="filtrarOrdenes()" style="flex:1;min-width:220px;">
-                <select id="filtroPrioridad" onchange="filtrarOrdenes()">
-                    <option value="">Todas las prioridades</option>
-                    <option value="Urgente">Urgente</option>
-                    <option value="Normal">Normal</option>
-                </select>
+                <input type="text" id="filtroOrdenes" placeholder="Buscar orden, cliente o estado..." oninput="filtrarOrdenes()" style="flex:1;min-width:220px;">
                 <select id="filtroEstadoOrden" onchange="filtrarOrdenes()">
                     <option value="">Todos los estados</option>
                     <option value="Confirmado">Confirmado</option>
@@ -732,7 +727,7 @@ async function cargarVista(modulo) {
                 </select>
             </div>
             <table class="tabla-sai">
-                <thead><tr><th># Cotización</th><th>Cliente</th><th>Estado</th><th>Prioridad</th><th>Entrega</th><th>Tiempo real</th><th style="text-align:center;">Acciones</th></tr></thead>
+                <thead><tr><th># Orden</th><th>Cliente</th><th>Estado</th><th>Prioridad</th><th>Entrega</th><th>Tiempo real</th><th style="text-align:center;">Acciones</th></tr></thead>
                 <tbody id="tablaProduccionBody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
             </table>
             <div id="notificacionesProduccion" style="margin-top:20px;"></div>`;
@@ -912,7 +907,7 @@ document.getElementById('formCliente').addEventListener('submit', async (e) => {
         correo:               document.getElementById('clienteCorreo').value,
         nit_dpi:              document.getElementById('clienteNit').value,
         tipo_cliente:         document.getElementById('clienteTipo').value,
-        descuento_porcentaje: parseFloat(document.getElementById('clienteDescuento').value)||0,
+      //  descuento_porcentaje: parseFloat(document.getElementById('clienteDescuento').value)||0,
         tipo_papel_preferido: document.getElementById('clientePapel').value,
         diseno_frecuente:     document.getElementById('clienteDiseno').value,
     };
@@ -1612,8 +1607,8 @@ function renderProduccion(lista) {
         const fechaEntrega = o.fecha_entrega_estimada ? new Date(o.fecha_entrega_estimada).toLocaleDateString('es-GT') : 'Sin fecha';
         const tiempoReal = o.tiempo_real_invertido != null ? `${o.tiempo_real_invertido} min` : '0 min';
         tbody.innerHTML += `<tr>
-            <td>#${o.id_cotizacion || '—'}</td>
-            <td>${o.cliente_nombre || '—'}</td>
+    <td>#${o.id_orden || '—'}</td>
+    <td>${o.cliente_nombre || '—'}</td>
             <td>${o.estado_actual || '—'}</td>
             <td>${o.prioridad || 'Normal'}</td>
             <td>${fechaEntrega}</td>
@@ -1651,13 +1646,11 @@ function renderSeguimiento(lista) {
 }
 
 function filtrarOrdenes() {
-    const texto = (document.getElementById('filtroOrdenes')?.value || '').toLowerCase();
-    const prioridad = document.getElementById('filtroPrioridad')?.value || '';
+    const texto  = (document.getElementById('filtroOrdenes')?.value || '').toLowerCase();
     const estado = document.getElementById('filtroEstadoOrden')?.value || '';
     const filtradas = ordenesProduccionCache.filter(o => {
-        const textoConcatenado = `${o.cliente_nombre || ''} ${o.estado_actual || ''} ${o.prioridad || ''}`.toLowerCase();
+        const textoConcatenado = `${o.id_orden || ''} ${o.cliente_nombre || ''} ${o.estado_actual || ''}`.toLowerCase();
         return (!texto || textoConcatenado.includes(texto)) &&
-               (!prioridad || o.prioridad === prioridad) &&
                (!estado || o.estado_actual === estado);
     });
     renderProduccion(filtradas);

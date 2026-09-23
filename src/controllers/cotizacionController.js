@@ -167,16 +167,6 @@ const eliminarCotizacion = async (req, res) => {
     }
 };
 
-const obtenerDescuentoPorTipo = (tipo) => {
-    switch(tipo) {
-        case 'VIP': return 7;
-        case 'Preferencial': return 4;
-        case 'Frecuente': return 2;
-        case 'Regular': 
-        default: return 0;
-    }
-};
-
 module.exports = {
     listarCotizaciones, obtenerCotizacion, listarPorCliente,
     obtenerCatalogo, crearCotizacion, cambiarEstado, eliminarCotizacion
