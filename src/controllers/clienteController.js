@@ -28,31 +28,32 @@ const obtenerCliente = async (req, res) => {
 
 // POST /api/clientes
 const crearCliente = async (req, res) => {
+    // QUITAMOS descuento_porcentaje de la desestructuración
     const {
         nombre, telefono, correo, nit_dpi,
         tipo_papel_preferido, diseno_frecuente,
-        tipo_cliente, descuento_porcentaje, id_usuario_asignado
+        tipo_cliente, id_usuario_asignado
     } = req.body;
 
     if (!nombre) {
         return res.status(400).json({ exito: false, mensaje: 'El nombre del cliente es obligatorio' });
     }
 
-    // Validar tipo_cliente si viene
     const tiposValidos = ['Regular', 'Frecuente', 'Preferencial', 'VIP'];
-    if (tipo_cliente && !tiposValidos.includes(tipo_cliente)) {
-        return res.status(400).json({
-            exito: false,
-            mensaje: `Tipo de cliente inválido. Debe ser: ${tiposValidos.join(', ')}`
-        });
-    }
+    const tipoFinal = (tipo_cliente && tiposValidos.includes(tipo_cliente)) ? tipo_cliente : 'Regular';
+    
+    // AGREGAMOS el cálculo estricto
+    const descuento_porcentaje = obtenerDescuentoPorTipo(tipoFinal);
 
     try {
         const nuevoId = await clienteModel.crearCliente({
             nombre, telefono, correo, nit_dpi,
             tipo_papel_preferido, diseno_frecuente,
-            tipo_cliente, descuento_porcentaje, id_usuario_asignado
+            tipo_cliente: tipoFinal, 
+            descuento_porcentaje, // Se envía el calculado por el backend
+            id_usuario_asignado
         });
+
         res.status(201).json({
             exito: true,
             mensaje: 'Cliente registrado correctamente',
@@ -67,21 +68,25 @@ const crearCliente = async (req, res) => {
 // PUT /api/clientes/:id
 const actualizarCliente = async (req, res) => {
     const { id } = req.params;
+    // QUITAMOS descuento_porcentaje de la desestructuración
     const {
         nombre, telefono, correo, nit_dpi,
         tipo_papel_preferido, diseno_frecuente,
-        tipo_cliente, descuento_porcentaje, id_usuario_asignado
+        tipo_cliente, id_usuario_asignado
     } = req.body;
 
-    if (!nombre) {
-        return res.status(400).json({ exito: false, mensaje: 'El nombre del cliente es obligatorio' });
-    }
+    // ... validaciones ...
+
+    const tipoFinal = tipo_cliente || 'Regular';
+    const descuento_porcentaje = obtenerDescuentoPorTipo(tipoFinal); // CÁLCULO ESTRICTO
 
     try {
         const actualizado = await clienteModel.actualizarCliente(id, {
             nombre, telefono, correo, nit_dpi,
             tipo_papel_preferido, diseno_frecuente,
-            tipo_cliente, descuento_porcentaje, id_usuario_asignado
+            tipo_cliente: tipoFinal, 
+            descuento_porcentaje, // Se envía el calculado por el backend
+            id_usuario_asignado
         });
 
         if (actualizado) {
@@ -108,6 +113,16 @@ const eliminarCliente = async (req, res) => {
     } catch (error) {
         console.error('Error al eliminar cliente:', error);
         res.status(500).json({ exito: false, mensaje: 'Error al eliminar el cliente' });
+    }
+};
+
+const obtenerDescuentoPorTipo = (tipo) => {
+    switch(tipo) {
+        case 'VIP': return 7;
+        case 'Preferencial': return 4;
+        case 'Frecuente': return 2;
+        case 'Regular': 
+        default: return 0;
     }
 };
 

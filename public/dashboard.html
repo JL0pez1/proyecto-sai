@@ -73,7 +73,7 @@
 <body>
 <div class="dashboard-layout">
     <aside class="sidebar">
-        <div class="sidebar-header">SAI Imprenta</div>
+        <div class="sidebar-header">SAI WEB</div>
         <ul class="sidebar-menu" id="menuLateral"></ul>
         <div style="padding:20px;text-align:center;">
             <div id="usuarioSesion" style="color:#ecf0f1;font-size:13px;margin-bottom:12px;"></div>
@@ -90,16 +90,16 @@
 <!-- ===== MODALES USUARIOS ===== -->
 <div id="modalEditar" class="modal-overlay" style="display:none;">
     <div class="modal-content">
-        <h3>✏️ Editar Usuario</h3>
+        <h3>Editar Usuario</h3>
         <form id="formEditarUsuario">
             <input type="hidden" id="editUserId">
             <div class="form-group" style="margin-bottom:12px;"><label>Nombre Completo</label><input type="text" id="editUserName" required></div>
             <div class="form-group" style="margin-bottom:12px;"><label>Asignar Rol</label>
                 <select id="editUserRole" required>
                     <option value="">Selecciona...</option>
-                    <option value="1">👑 Administrador</option>
-                    <option value="2">💼 Ventas / Recepción</option>
-                    <option value="3">⚙️ Producción</option>
+                    <option value="1">Administrador</option>
+                    <option value="2">Ventas / Recepción</option>
+                    <option value="3">Producción</option>
                 </select>
             </div>
             <div style="display:flex;gap:10px;margin-top:16px;">
@@ -112,7 +112,7 @@
 
 <div id="modalCrear" class="modal-overlay" style="display:none;">
     <div class="modal-content">
-        <h3>➕ Nuevo Personal</h3>
+        <h3>Nuevo Personal</h3>
         <form id="formCrearUsuario">
             <div class="form-group" style="margin-bottom:10px;"><label>Nombre</label><input type="text" id="crearUserName" required></div>
             <div class="form-group" style="margin-bottom:10px;"><label>Correo</label><input type="email" id="crearUserEmail" required></div>
@@ -120,9 +120,9 @@
             <div class="form-group" style="margin-bottom:10px;"><label>Rol</label>
                 <select id="crearUserRole" required>
                     <option value="">Selecciona...</option>
-                    <option value="1">👑 Administrador</option>
-                    <option value="2">💼 Ventas</option>
-                    <option value="3">⚙️ Producción</option>
+                    <option value="1">Administrador</option>
+                    <option value="2">Ventas</option>
+                    <option value="3">Producción</option>
                 </select>
             </div>
             <div style="display:flex;gap:10px;margin-top:16px;">
@@ -135,7 +135,7 @@
 
 <div id="modalPassword" class="modal-overlay" style="display:none;">
     <div class="modal-content">
-        <h3>🔑 Reiniciar Contraseña</h3>
+        <h3>Reiniciar Contraseña</h3>
         <form id="formResetPassword">
             <input type="hidden" id="resetUserId">
             <div class="form-group" style="margin-bottom:12px;"><label>Nueva Contraseña</label><input type="password" id="resetUserPass" required minlength="6"></div>
@@ -150,7 +150,7 @@
 <!-- ===== MODAL CLIENTE ===== -->
 <div id="modalCliente" class="modal-overlay" style="display:none;">
     <div class="modal-content" style="max-width:560px;">
-        <h3 id="tituloModalCliente">➕ Nuevo Cliente</h3>
+        <h3 id="tituloModalCliente">Nuevo Cliente</h3>
         <form id="formCliente">
             <input type="hidden" id="clienteId">
             <div class="form-grid">
@@ -183,7 +183,7 @@
 <!-- ===== MODAL NUEVA COTIZACIÓN ===== -->
 <div id="modalCotizacion" class="modal-overlay" style="display:none;">
     <div class="modal-content wide">
-        <h3>📝 Nueva Cotización</h3>
+        <h3>Nueva Cotización</h3>
         <form id="formCotizacion">
 
             <!-- Tabs: cliente existente / cliente nuevo -->
@@ -196,7 +196,7 @@
             <div id="panelExistente">
                 <div class="form-group" style="margin-bottom:14px;">
                     <label>Selecciona cliente *</label>
-                    <select id="cotCliente" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+                    <select id="cotCliente" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;" onchange="actualizarDescuentoCotizacion()">
                         <option value="">Cargando clientes...</option>
                     </select>
                 </div>
@@ -205,7 +205,7 @@
             <!-- Panel cliente nuevo -->
             <div id="panelNuevo" style="display:none;">
                 <div class="seccion-cliente-nuevo">
-                    <h4>📋 Datos del nuevo cliente</h4>
+                    <h4>Datos del nuevo cliente</h4>
                     <div class="form-grid">
                         <div class="form-group full"><label>Nombre *</label><input type="text" id="nuevoNombre" placeholder="Nombre completo"></div>
                         <div class="form-group"><label>Teléfono</label><input type="text" id="nuevoTelefono" placeholder="5555-1234"></div>
@@ -236,8 +236,10 @@
             </div>
             <div id="contenedorDetalle"></div>
 
-            <div style="text-align:right;margin-top:12px;font-size:16px;color:#2c3e50;font-weight:700;">
-                Total estimado: Q <span id="totalCot">0.00</span>
+            <div style="text-align:right;margin-top:12px;font-size:13px;color:#687681;line-height:1.8;">
+                <div>Subtotal: Q <span id="subtotalCot">0.00</span></div>
+                <div>Descuento (<span id="descuentoPorcentajeCot">0</span>%): -Q <span id="montoDescuentoCot">0.00</span></div>
+                <div style="font-size:16px;color:#17232d;font-weight:700;">Total estimado: Q <span id="totalCot">0.00</span></div>
             </div>
 
             <div style="display:flex;gap:10px;margin-top:18px;">
@@ -251,10 +253,10 @@
 <!-- ===== MODAL VER COTIZACIÓN ===== -->
 <div id="modalVerCot" class="modal-overlay" style="display:none;">
     <div class="modal-content wide">
-        <h3>📋 Detalle de Cotización</h3>
+        <h3>Detalle de Cotización</h3>
         <div id="contenidoVerCot"></div>
         <div style="display:flex;gap:10px;margin-top:18px;">
-            <button type="button" class="btn-primary" style="background:#3498db;" id="btnDescargarPdf">⬇️ Descargar PDF</button>
+            <button type="button" class="btn-primary" style="background:#3498db;" id="btnDescargarPdf">Descargar PDF</button>
             <button type="button" class="btn-primary" style="background:#95a5a6;" onclick="cerrarModal('modalVerCot')">Cerrar</button>
         </div>
     </div>
@@ -278,7 +280,7 @@ const datosToken = decodificarToken(token);
 if (!token || !datosToken || (datosToken.exp && datosToken.exp * 1000 <= Date.now())) cerrarSesionPorToken();
 const usuarioSesion = JSON.parse(localStorage.getItem('usuario') || 'null');
 const usuarioSesionEl = document.getElementById('usuarioSesion');
-if (usuarioSesionEl) usuarioSesionEl.textContent = `👤 ${usuarioSesion?.nombre || 'Usuario'}`;
+if (usuarioSesionEl) usuarioSesionEl.textContent = usuarioSesion?.nombre || 'Usuario';
 const headers = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
 let vistaActual = null;
 let ordenDetalleActual = null;
@@ -309,21 +311,21 @@ const rolID = datosToken ? parseInt(datosToken.id_rol) : null;
 const menuLateral = document.getElementById('menuLateral');
 let htmlMenu = '';
 if (rolID === 1) {
-    htmlMenu += `<li><a href="#" onclick="cargarVista('usuarios')">🔐 Usuarios y Seguridad</a></li>`;
-    //htmlMenu += `<li><a href="#" onclick="cargarVista('insumos')">📦 Gestión de Insumos</a></li>`;
-    htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
-    htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
-    htmlMenu += `<li><a href="#" onclick="cargarVista('controlTiempos')">⏱️ Control de tiempos</a></li>`;
-    htmlMenu += `<li><a href="#" onclick="cargarVista('seguimientoImpresiones')">📌 Seguimiento de impresiones</a></li>`;
-    htmlMenu += `<li><a href="#" onclick="cargarVista('reportes')">📊 Reportes</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('usuarios')">Usuarios y Seguridad</a></li>`;
+    //htmlMenu += `<li><a href="#" onclick="cargarVista('insumos')">Gestión de Insumos</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">Clientes</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">Cotizaciones</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('controlTiempos')">Control de tiempos</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('seguimientoImpresiones')">Seguimiento de impresiones</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('reportes')">Reportes</a></li>`;
 } else if (rolID === 2) {
-    htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">👥 Clientes</a></li>`;
-    htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">📝 Cotizaciones</a></li>`;
-    htmlMenu += `<li><a href="#" onclick="cargarVista('seguimientoImpresiones')">📌 Seguimiento de impresiones</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('clientes')">Clientes</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('cotizaciones')">Cotizaciones</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('seguimientoImpresiones')">Seguimiento de impresiones</a></li>`;
 } else if (rolID === 3) {
-    htmlMenu += `<li><a href="#" onclick="cargarVista('controlTiempos')">⏱️ Órdenes y tiempos de impresión</a></li>`;
+    htmlMenu += `<li><a href="#" onclick="cargarVista('controlTiempos')">Órdenes y tiempos de impresión</a></li>`;
 } else {
-    htmlMenu += `<li><a href="#">⚠️ Rol no reconocido</a></li>`;
+    htmlMenu += `<li><a href="#">Rol no reconocido</a></li>`;
 } 
 menuLateral.innerHTML = htmlMenu;
 
@@ -388,20 +390,29 @@ function actualizarContadorOrdenProd() {
     const el = document.getElementById('tiempoRestanteProduccion');
     if (!el || !produccionActual) return;
     const segundosEstimados = Math.round((produccionActual.tiempo_estimado_horas || 0) * 3600);
-    const inicio = parseLocalDatetime(produccionActual.fecha_inicio_real);
-    const fin = parseLocalDatetime(produccionActual.fecha_fin_real) || new Date();
-    const segundosReales = inicio ? Math.max(0, (fin.getTime() - inicio.getTime()) / 1000) : 0;
+    const segmentos = Array.isArray(produccionActual.tiempos) ? produccionActual.tiempos : [];
+    const segundosReales = segmentos.reduce((total, segmento) => {
+        const inicio = parseLocalDatetime(segmento.inicio);
+        const fin = parseLocalDatetime(segmento.fin) || (segmento.estado === 'Activo' ? new Date() : null);
+        return inicio && fin ? total + Math.max(0, (fin.getTime() - inicio.getTime()) / 1000) : total;
+    }, 0);
     if (segundosEstimados === 0) {
         el.textContent = 'Sin estimado disponible';
         el.style.color = '#2c3e50';
         return;
     }
-    if (!inicio) {
+    if (segundosReales === 0 && !segmentos.length) {
         el.textContent = 'Pendiente de iniciar';
         el.style.color = '#2c3e50';
         return;
     }
     const diferencia = segundosEstimados - segundosReales;
+    if (['Cancelado', 'Terminado', 'Entregado'].includes(produccionActual.estado_actual)) {
+        const etiqueta = produccionActual.estado_actual === 'Cancelado' ? 'Detenido' : 'Finalizado';
+        el.textContent = `${etiqueta}: ${formatearDuracion(segundosReales)}`;
+        el.style.color = produccionActual.estado_actual === 'Cancelado' ? '#b94a48' : '#167d78';
+        return;
+    }
     const texto = `${diferencia < 0 ? '-' : ''}${formatearDuracion(Math.abs(diferencia))} ${diferencia < 0 ? 'atraso' : 'restante'}`;
     el.textContent = texto;
     el.style.color = diferencia < 0 ? '#c0392b' : '#2c3e50';
@@ -618,7 +629,7 @@ async function cargarVista(modulo) {
     const contenedor = document.getElementById('contenedorVistas');
 
     if (modulo === 'usuarios') {
-        titulo.innerText = '🔐 Gestión de Usuarios';
+        titulo.innerText = 'Gestión de Usuarios';
         contenedor.innerHTML = `
             <div class="modulo-header">
                 <h3>Lista de Personal</h3>
@@ -640,11 +651,11 @@ async function cargarVista(modulo) {
                         <td><span class="badge badge-frecuente">${u.rol||'Sin rol'}</span></td>
                         <td>${u.estado}</td>
                         <td style="text-align:center;">
-                            <button class="btn-accion btn-edit" onclick="editarUsuario(${u.id_usuario},'${u.nombre_completo.replace(/'/g,"\\'")}')">✏️ Editar</button>
+                            <button class="btn-accion btn-edit" onclick="editarUsuario(${u.id_usuario},'${u.nombre_completo.replace(/'/g,"\\'")}')">Editar</button>
                             ${u.estado === 'Activo'
-                                ? `<button class="btn-accion btn-delete" onclick="desactivarUsuario(${u.id_usuario})">🚫 Bajar</button>`
-                                : `<button class="btn-accion" style="background:#27ae60;" onclick="activarUsuario(${u.id_usuario})">✅ Habilitar</button>`}
-                            <button class="btn-accion" style="background:#34495e;" onclick="resetearClave(${u.id_usuario})">🔑 Clave</button>
+                                ? `<button class="btn-accion btn-delete" onclick="desactivarUsuario(${u.id_usuario})">Desactivar</button>`
+                                : `<button class="btn-accion" style="background:#27ae60;" onclick="activarUsuario(${u.id_usuario})">Habilitar</button>`}
+                            <button class="btn-accion" style="background:#34495e;" onclick="resetearClave(${u.id_usuario})">Clave</button>
                         </td>
                     </tr>`;
                 });
@@ -656,14 +667,14 @@ async function cargarVista(modulo) {
         }
 
     } else if (modulo === 'clientes') {
-        titulo.innerText = '👥 Gestión de Clientes';
+        titulo.innerText = 'Gestión de Clientes';
         contenedor.innerHTML = `
             <div class="modulo-header">
                 <h3>Lista de Clientes</h3>
                 <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCliente()">+ Nuevo Cliente</button>
             </div>
             <div class="filtros-row">
-                <input type="text" id="filtroCliente" placeholder="🔍 Buscar nombre o NIT..." oninput="filtrarClientes()" style="flex:1;min-width:200px;">
+                <input type="text" id="filtroCliente" placeholder="Buscar nombre o NIT..." oninput="filtrarClientes()" style="flex:1;min-width:200px;">
                 <select id="filtroTipoCliente" onchange="filtrarClientes()">
                     <option value="">Todos los tipos</option>
                     <option value="Regular">Regular</option>
@@ -680,17 +691,17 @@ async function cargarVista(modulo) {
         await cargarClientes();
 
     } else if (modulo === 'cotizaciones') {
-        titulo.innerText = '📝 Gestión de Cotizaciones';
+        titulo.innerText = 'Gestión de Cotizaciones';
         contenedor.innerHTML = `
             <div class="modulo-header">
                 <h3>Lista de Cotizaciones</h3>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    ${rolID === 1 ? '<button class="btn-primary" style="width:auto;padding:10px 20px;background:#8e44ad;" onclick="abrirGestionCatalogo()">⚙️ Catálogos</button>' : ''}
+                    ${rolID === 1 ? '<button class="btn-primary" style="width:auto;padding:10px 20px;background:#8e44ad;" onclick="abrirGestionCatalogo()">Catálogos</button>' : ''}
                     <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCotizacion()">+ Nueva Cotización</button>
                 </div>
             </div>
             <div class="filtros-row">
-                <input type="text" id="filtroCot" placeholder="🔍 Buscar por # de cotización..." oninput="filtrarCotizaciones()" style="flex:1;min-width:200px;">
+                <input type="text" id="filtroCot" placeholder="Buscar por # de cotización..." oninput="filtrarCotizaciones()" style="flex:1;min-width:200px;">
                 <select id="filtroEstadoCot" onchange="filtrarCotizaciones()">
                     <option value="">Todos los estados</option>
                     <option value="Pendiente">Pendiente</option>
@@ -706,15 +717,15 @@ async function cargarVista(modulo) {
         await cargarCotizaciones();
 
     } else if (modulo === 'controlTiempos') {
-        titulo.innerText = '⏱️ Órdenes y tiempos de impresión';
+        titulo.innerText = 'Órdenes y tiempos de impresión';
         contenedor.innerHTML = `
             <div class="modulo-header">
                 <h3>Órdenes y tiempos de impresión</h3>
-                ${rolID === 1 ? '<button class="btn-primary" style="width:auto;padding:10px 20px;background:#8e44ad;" onclick="abrirGestionImpresoras()">⚙️ Impresoras</button>' : ''}
+                ${rolID === 1 ? '<button class="btn-primary" style="width:auto;padding:10px 20px;background:#8e44ad;" onclick="abrirGestionImpresoras()">Impresoras</button>' : ''}
             </div>
             <div class="cards-row" id="statsProduccion"></div>
             <div class="filtros-row">
-                <input type="text" id="filtroOrdenes" placeholder="🔍 Buscar cliente, estado o prioridad..." oninput="filtrarOrdenes()" style="flex:1;min-width:220px;">
+                <input type="text" id="filtroOrdenes" placeholder="Buscar cliente, estado o prioridad..." oninput="filtrarOrdenes()" style="flex:1;min-width:220px;">
                 <select id="filtroPrioridad" onchange="filtrarOrdenes()">
                     <option value="">Todas las prioridades</option>
                     <option value="Urgente">Urgente</option>
@@ -729,22 +740,22 @@ async function cargarVista(modulo) {
                 </select>
             </div>
             <table class="tabla-sai">
-                <thead><tr><th>Cliente</th><th>Estado</th><th>Prioridad</th><th>Entrega</th><th>Tiempo real</th><th style="text-align:center;">Acciones</th></tr></thead>
-                <tbody id="tablaProduccionBody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+                <thead><tr><th># Cotización</th><th>Cliente</th><th>Estado</th><th>Prioridad</th><th>Entrega</th><th>Tiempo real</th><th style="text-align:center;">Acciones</th></tr></thead>
+                <tbody id="tablaProduccionBody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
             </table>
             <div id="notificacionesProduccion" style="margin-top:20px;"></div>`;
         await actualizarProduccion();
         await cargarNotificacionesProduccion();
     } else if (modulo === 'reportes') {
         if (rolID !== 1) return;
-        titulo.innerText = '📊 Reportes y analítica';
+        titulo.innerText = 'Reportes y analítica';
         const hoy = new Date();
         const inicio = `${hoy.getFullYear()}-01-01`;
         const fin = hoy.toISOString().slice(0, 10);
         contenedor.innerHTML = `
             <div class="modulo-header">
                 <h3>Resumen comercial y de producción</h3>
-                <button class="btn-primary" style="width:auto;padding:10px 18px;background:#16805c;" onclick="exportarReporteExcel()">⬇️ Exportar Excel</button>
+                <button class="btn-primary" style="width:auto;padding:10px 18px;background:#16805c;" onclick="exportarReporteExcel()">Exportar Excel</button>
             </div>
             <div class="filtros-row reporte-filtros">
                 <label>Desde <input type="date" id="reporteInicio" value="${inicio}"></label>
@@ -764,20 +775,20 @@ async function cargarVista(modulo) {
             </div>`;
         await cargarReporte();
     } else if (modulo === 'seguimientoImpresiones') {
-        titulo.innerText = '📌 Seguimiento de impresiones';
+        titulo.innerText = 'Seguimiento de impresiones';
         contenedor.innerHTML = `
             <div class="modulo-header">
                 <h3>Seguimiento de impresiones</h3>
             </div>
             <div class="cards-row" id="statsSeguimiento"></div>
             <table class="tabla-sai">
-                <thead><tr><th>Orden</th><th>Cliente</th><th>Estado</th><th>Máquina</th><th>Operador</th><th>Tiempo Producción</th><th>Entrega</th><th style="text-align:center;">Ver</th></tr></thead>
-                <tbody id="tablaSeguimientoBody"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+                <thead><tr><th># Cotización</th><th>Orden</th><th>Cliente</th><th>Estado</th><th>Máquina</th><th>Operador</th><th>Tiempo Producción</th><th>Entrega</th><th style="text-align:center;">Ver</th></tr></thead>
+                <tbody id="tablaSeguimientoBody"><tr><td colspan="9" class="loading">Cargando...</td></tr></tbody>
             </table><div id="notificacionesProduccion" style="margin-top:20px;"></div>`;
         await actualizarProduccion();
         await cargarNotificacionesProduccion();
     } else if (modulo === 'insumos') {
-        titulo.innerText = '📦 Gestión de Insumos';
+        titulo.innerText = 'Gestión de Insumos';
         contenedor.innerHTML = '<p>Próximamente: Módulo de Inventario e Insumos</p>';
     }
 }
@@ -822,8 +833,8 @@ function renderClientes(lista) {
             <td>${badgeTipo(c.tipo_cliente)}</td>
             <td>${c.descuento_porcentaje>0?c.descuento_porcentaje+'%':'—'}</td>
             <td style="text-align:center;">
-                <button class="btn-accion btn-edit" onclick="editarCliente(${c.id_cliente})">✏️ Editar</button>
-                <button class="btn-accion btn-delete" onclick="eliminarCliente(${c.id_cliente},'${c.nombre.replace(/'/g,"\\'")}')">🗑️</button>
+                <button class="btn-accion btn-edit" onclick="editarCliente(${c.id_cliente})">Editar</button>
+                <button class="btn-accion btn-delete" onclick="eliminarCliente(${c.id_cliente},'${c.nombre.replace(/'/g,"\\'")}')">Eliminar</button>
             </td>
         </tr>`;
     });
@@ -841,7 +852,7 @@ function filtrarClientes() {
 function abrirModalCliente(cliente=null) {
     document.getElementById('formCliente').reset();
     document.getElementById('clienteId').value='';
-    document.getElementById('tituloModalCliente').innerText = cliente ? '✏️ Editar Cliente' : '➕ Nuevo Cliente';
+    document.getElementById('tituloModalCliente').innerText = cliente ? 'Editar Cliente' : 'Nuevo Cliente';
     if (cliente) {
         document.getElementById('clienteId').value      = cliente.id_cliente;
         document.getElementById('clienteNombre').value  = cliente.nombre;
@@ -960,11 +971,11 @@ function renderCotizaciones(lista) {
             <td><strong>Q ${parseFloat(c.total).toFixed(2)}</strong></td>
             <td>${c.nombre_usuario||'—'}</td>
             <td style="text-align:center;">
-                <button class="btn-accion btn-view" onclick="verCotizacion(${c.id_cotizacion})">👁 Ver</button>
+                <button class="btn-accion btn-view" onclick="verCotizacion(${c.id_cotizacion})">Ver</button>
                 ${esPend?`
-                <button class="btn-accion btn-accept" onclick="cambiarEstado(${c.id_cotizacion},'Aceptada')">✅</button>
-                <button class="btn-accion btn-reject" onclick="cambiarEstado(${c.id_cotizacion},'Rechazada')">❌</button>`:''}
-                <button class="btn-accion btn-delete" onclick="eliminarCotizacion(${c.id_cotizacion})">🗑️</button>
+                <button class="btn-accion btn-accept" onclick="cambiarEstado(${c.id_cotizacion},'Aceptada')">Aceptar</button>
+                <button class="btn-accion btn-reject" onclick="cambiarEstado(${c.id_cotizacion},'Rechazada')">Rechazar</button>`:''}
+                <button class="btn-accion btn-delete" onclick="eliminarCotizacion(${c.id_cotizacion})">Eliminar</button>
             </td>
         </tr>`;
     });
@@ -989,25 +1000,18 @@ async function abrirGestionCatalogo() {
     overlay.id = 'modalGestionCatalogo';
     overlay.className = 'modal-overlay';
     overlay.style.display = 'flex';
-    overlay.innerHTML = `<div class="modal-content wide" style="max-width:980px;max-height:92vh;overflow:auto;">
+    overlay.innerHTML = `<div class="modal-content wide admin-modal">
         <button type="button" class="btn-modal-cerrar" title="Cerrar">×</button>
-        <h3>⚙️ Catálogos para cotizaciones</h3>
-        <div><section><h4>Insumos: papel, tinta y acabados</h4>
-                <form id="formAdminInsumo" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-                    <input type="hidden" id="adminInsumoId">
-                    <input id="adminInsumoNombre" placeholder="Nombre" required>
-                    <input id="adminInsumoCategoria" placeholder="Categoría (Papel, Tinta...)" required>
-                    <input id="adminInsumoCosto" type="number" min="0" step="0.01" placeholder="Precio de compra" required>
-                    <input id="adminInsumoVenta" type="number" min="0" step="0.01" placeholder="Precio de venta" required>
-                    <button class="btn-primary" type="submit">Guardar insumo</button>
-                    <button class="btn-primary" type="button" style="background:#95a5a6;" onclick="limpiarFormAdminInsumo()">Limpiar</button>
-                </form><div id="listaAdminInsumos"></div>
-            </section></div>
+        <div class="admin-modal-header">
+            <div><p class="admin-eyebrow">Administración</p><h3>Catálogos para cotizaciones</h3><p class="admin-description">Gestiona materiales y precios disponibles para las cotizaciones.</p></div>
+        </div>
+        <section class="admin-section"><div class="admin-section-header"><div><h4>Insumos</h4><p>Papel, tinta y acabados</p></div><button class="btn-primary admin-add-button" type="button" onclick="abrirModalAdminInsumo()">Nuevo insumo</button></div>
+            <div class="admin-list-toolbar"><label for="buscarAdminInsumos">Buscar insumo</label><input id="buscarAdminInsumos" class="admin-search" type="search" placeholder="Nombre o categoría" oninput="renderCatalogosAdmin()"></div><div id="listaAdminInsumos" class="admin-list"></div>
+        </section>
     </div>`;
     document.body.appendChild(overlay);
     overlay.querySelector('.btn-modal-cerrar').onclick = () => overlay.remove();
     overlay.onclick = event => { if (event.target === overlay) overlay.remove(); };
-    document.getElementById('formAdminInsumo').addEventListener('submit', guardarAdminInsumo);
     await cargarCatalogosAdmin();
 }
 
@@ -1017,18 +1021,18 @@ async function abrirGestionImpresoras() {
     overlay.id = 'modalGestionImpresoras';
     overlay.className = 'modal-overlay';
     overlay.style.display = 'flex';
-    overlay.innerHTML = `<div class="modal-content wide" style="max-width:760px;max-height:92vh;overflow:auto;">
+    overlay.innerHTML = `<div class="modal-content wide admin-modal admin-modal-compact">
         <button type="button" class="btn-modal-cerrar" title="Cerrar">×</button>
-        <h3>⚙️ Gestión de impresoras</h3>
-        <form id="formAdminMaquina" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div class="admin-modal-header"><div><p class="admin-eyebrow">Administración</p><h3>Gestión de impresoras</h3><p class="admin-description">Configura las máquinas disponibles y su tarifa por hora.</p></div></div>
+        <section class="admin-section"><div class="admin-section-header"><div><h4>Impresoras registradas</h4><p>Estado y tarifa de operación</p></div><span class="admin-count" id="contadorAdminMaquinas"></span></div>
+        <form id="formAdminMaquina" class="admin-form">
             <input type="hidden" id="adminMaquinaId">
             <input id="adminMaquinaNombre" placeholder="Nombre" required>
             <input id="adminMaquinaTipo" placeholder="Tipo" required>
             <input id="adminMaquinaPrecio" type="number" min="0" step="0.01" placeholder="Precio por hora" required>
-            <button class="btn-primary" type="submit">Guardar impresora</button>
-            <button class="btn-primary" type="button" style="background:#95a5a6;" onclick="limpiarFormAdminMaquina()">Limpiar</button>
+            <div class="admin-form-actions"><button class="btn-primary" type="submit">Guardar impresora</button><button class="btn-secondary" type="button" onclick="limpiarFormAdminMaquina()">Limpiar</button></div>
         </form>
-        <div id="listaAdminMaquinas"></div>
+        <div class="admin-list-toolbar"><label for="buscarAdminMaquinas">Buscar impresora</label><input id="buscarAdminMaquinas" class="admin-search" type="search" placeholder="Nombre o tipo" oninput="renderCatalogosAdmin()"></div><div id="listaAdminMaquinas" class="admin-list"></div></section>
     </div>`;
     document.body.appendChild(overlay);
     overlay.querySelector('.btn-modal-cerrar').onclick = () => overlay.remove();
@@ -1054,13 +1058,55 @@ async function cargarCatalogosAdmin() {
 function renderCatalogosAdmin() {
     const insumos = document.getElementById('listaAdminInsumos');
     const maquinas = document.getElementById('listaAdminMaquinas');
-    if (insumos) insumos.innerHTML = adminInsumos.map(i => `<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid #eee;padding:8px 0;font-size:12px;"><span><b>${escaparCatalogo(i.nombre)}</b><br>${escaparCatalogo(i.categoria)} · Compra Q${i.costo_unitario} · Venta Q${i.precio_venta}</span><span><button class="btn-accion btn-edit" onclick="editarAdminInsumo(${i.id_insumo})">✏️</button><button class="btn-accion btn-delete" onclick="eliminarAdminInsumo(${i.id_insumo})">🗑️</button></span></div>`).join('') || '<p>No hay insumos.</p>';
-    if (maquinas) maquinas.innerHTML = adminMaquinas.map(m => `<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid #eee;padding:8px 0;font-size:12px;"><span><b>${escaparCatalogo(m.nombre)}</b><br>${escaparCatalogo(m.tipo)} · Q${m.precio_por_hora}/h · ${m.estado}</span><span><button class="btn-accion btn-edit" onclick="editarAdminMaquina(${m.id_maquina})">✏️</button>${m.estado === 'Mantenimiento' ? `<button class="btn-accion btn-accept" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Disponible')">✅ Habilitar</button>` : `<button class="btn-accion btn-delete" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Mantenimiento')">🚫 Deshabilitar</button>`}</span></div>`).join('') || '<p>No hay impresoras.</p>';
+    const textoInsumos = document.getElementById('buscarAdminInsumos')?.value.trim().toLowerCase() || '';
+    const textoMaquinas = document.getElementById('buscarAdminMaquinas')?.value.trim().toLowerCase() || '';
+    const insumosFiltrados = adminInsumos.filter(i => `${i.nombre} ${i.categoria}`.toLowerCase().includes(textoInsumos));
+    const maquinasFiltradas = adminMaquinas.filter(m => `${m.nombre} ${m.tipo} ${m.estado}`.toLowerCase().includes(textoMaquinas));
+    const contadorInsumos = document.getElementById('contadorAdminInsumos');
+    const contadorMaquinas = document.getElementById('contadorAdminMaquinas');
+    if (contadorInsumos) contadorInsumos.textContent = `${insumosFiltrados.length} de ${adminInsumos.length}`;
+    if (contadorMaquinas) contadorMaquinas.textContent = `${maquinasFiltradas.length} de ${adminMaquinas.length}`;
+    if (insumos) insumos.innerHTML = insumosFiltrados.map(i => `<div class="admin-list-item"><div><strong>${escaparCatalogo(i.nombre)}</strong><span>${escaparCatalogo(i.categoria)}</span></div><div class="admin-list-meta"><span>Compra Q${i.costo_unitario}</span><span>Venta Q${i.precio_venta}</span><div class="admin-list-actions"><button class="btn-accion btn-edit" onclick="editarAdminInsumo(${i.id_insumo})">Editar</button><button class="btn-accion btn-delete" onclick="eliminarAdminInsumo(${i.id_insumo})">Eliminar</button></div></div></div>`).join('') || '<p class="admin-empty">No hay insumos que coincidan con la búsqueda.</p>';
+    if (maquinas) maquinas.innerHTML = maquinasFiltradas.map(m => `<div class="admin-list-item"><div><strong>${escaparCatalogo(m.nombre)}</strong><span>${escaparCatalogo(m.tipo)}</span></div><div class="admin-list-meta"><span class="admin-status ${m.estado === 'Mantenimiento' ? 'is-warning' : 'is-ready'}">${m.estado}</span><span>Q${m.precio_por_hora}/h</span><div class="admin-list-actions"><button class="btn-accion btn-edit" onclick="editarAdminMaquina(${m.id_maquina})">Editar</button>${m.estado === 'Mantenimiento' ? `<button class="btn-accion btn-accept" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Disponible')">Habilitar</button>` : `<button class="btn-accion btn-delete" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Mantenimiento')">Deshabilitar</button>`}</div></div></div>`).join('') || '<p class="admin-empty">No hay impresoras que coincidan con la búsqueda.</p>';
 }
 
-function limpiarFormAdminInsumo() { document.getElementById('formAdminInsumo').reset(); document.getElementById('adminInsumoId').value = ''; }
+function abrirModalAdminInsumo(id = null) {
+    const insumo = id ? adminInsumos.find(item => item.id_insumo === id) : null;
+    if (id && !insumo) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'modalAdminInsumo';
+    overlay.className = 'modal-overlay modal-overlay-admin-form';
+    overlay.style.display = 'flex';
+    overlay.innerHTML = `<div class="modal-content admin-form-modal">
+        <button type="button" class="btn-modal-cerrar" title="Cerrar">×</button>
+        <p class="admin-eyebrow">Catálogo de insumos</p>
+        <h3>${insumo ? 'Editar insumo' : 'Nuevo insumo'}</h3>
+        <p class="admin-description">Completa la información del material y sus precios.</p>
+        <form id="formAdminInsumo" class="admin-form admin-form-modal-fields">
+            <input type="hidden" id="adminInsumoId" value="${insumo?.id_insumo || ''}">
+            <label>Nombre<input id="adminInsumoNombre" value="${escaparCatalogo(insumo?.nombre || '')}" placeholder="Ej. Papel bond" required></label>
+            <label>Categoría<select id="adminInsumoCategoria" required>
+                <option value="">Selecciona una categoría...</option>
+                <option value="Papel" ${String(insumo?.categoria || '').toLowerCase() === 'papel' ? 'selected' : ''}>Papel</option>
+                <option value="Tinta" ${String(insumo?.categoria || '').toLowerCase() === 'tinta' ? 'selected' : ''}>Tinta</option>
+                <option value="Acabado" ${String(insumo?.categoria || '').toLowerCase().startsWith('acabado') ? 'selected' : ''}>Acabado</option>
+            </select></label>
+            <label>Precio de compra<input id="adminInsumoCosto" value="${insumo?.costo_unitario ?? ''}" type="number" min="0" step="0.01" placeholder="0.00" required></label>
+            <label>Precio de venta<input id="adminInsumoVenta" value="${insumo?.precio_venta ?? ''}" type="number" min="0" step="0.01" placeholder="0.00" required></label>
+            <div class="admin-form-actions"><button class="btn-primary" type="submit">${insumo ? 'Guardar cambios' : 'Guardar insumo'}</button><button class="btn-secondary" type="button" onclick="cerrarModalAdminInsumo()">Cancelar</button></div>
+        </form>
+    </div>`;
+    document.body.appendChild(overlay);
+    const cerrar = () => overlay.remove();
+    overlay.querySelector('.btn-modal-cerrar').onclick = cerrar;
+    overlay.onclick = event => { if (event.target === overlay) cerrar(); };
+    overlay.querySelector('#formAdminInsumo').addEventListener('submit', guardarAdminInsumo);
+}
+
+function cerrarModalAdminInsumo() { document.getElementById('modalAdminInsumo')?.remove(); }
+function limpiarFormAdminInsumo() { cerrarModalAdminInsumo(); }
 function limpiarFormAdminMaquina() { document.getElementById('formAdminMaquina').reset(); document.getElementById('adminMaquinaId').value = ''; }
-function editarAdminInsumo(id) { const i = adminInsumos.find(item => item.id_insumo === id); if (!i) return; document.getElementById('adminInsumoId').value=id; document.getElementById('adminInsumoNombre').value=i.nombre; document.getElementById('adminInsumoCategoria').value=i.categoria; document.getElementById('adminInsumoCosto').value=i.costo_unitario; document.getElementById('adminInsumoVenta').value=i.precio_venta; }
+function editarAdminInsumo(id) { abrirModalAdminInsumo(id); }
 function editarAdminMaquina(id) { const m = adminMaquinas.find(item => item.id_maquina === id); if (!m) return; document.getElementById('adminMaquinaId').value=id; document.getElementById('adminMaquinaNombre').value=m.nombre; document.getElementById('adminMaquinaTipo').value=m.tipo; document.getElementById('adminMaquinaPrecio').value=m.precio_por_hora; }
 
 async function guardarAdminInsumo(event) {
@@ -1114,7 +1160,7 @@ async function abrirModalCotizacion() {
         const sel  = document.getElementById('cotCliente');
         sel.innerHTML='<option value="">Selecciona un cliente...</option>';
         (data.datos||[]).forEach(c=>{
-            sel.innerHTML+=`<option value="${c.id_cliente}">${c.nombre} (${c.tipo_cliente})</option>`;
+            sel.innerHTML+=`<option value="${c.id_cliente}" data-descuento="${Number(c.descuento_porcentaje || 0)}">${c.nombre} (${c.tipo_cliente}) - ${Number(c.descuento_porcentaje || 0)}% descuento</option>`;
         });
     } catch(e){}
 
@@ -1122,8 +1168,8 @@ async function abrirModalCotizacion() {
     switchTab('existente');
     contLineas=0;
     document.getElementById('contenedorDetalle').innerHTML='';
-    document.getElementById('totalCot').innerText='0.00';
     document.getElementById('formCotizacion').reset();
+    actualizarResumenCotizacion(0);
     agregarLinea();
     document.getElementById('modalCotizacion').style.display='flex';
 }
@@ -1132,29 +1178,31 @@ function agregarLinea() {
     contLineas++;
     const id = contLineas;
     
-    // Opciones de Trabajo Base
-    let opcionesTrabajo = '<option value="">Selecciona trabajo base (Catálogo)...</option>';
-    if(catalogoCot.preciosBase) {
-        catalogoCot.preciosBase.forEach(pb => {
-            opcionesTrabajo += `<option value="${pb.id_precio}" data-precio="${pb.precio_unitario}" data-tipo="${pb.tipo_trabajo}" data-tamano="${pb.tamano || ''}" data-idpapel="${pb.id_papel || ''}">
-                ${pb.tipo_trabajo} ${pb.tamano ? '('+pb.tamano+')' : ''} — Q${parseFloat(pb.precio_unitario).toFixed(2)}
-            </option>`;
-        });
-    }
+    // Separar los insumos del catálogo por categoría.
+    const categoriaInsumo = insumo => String(insumo.categoria || '').trim().toLowerCase();
+    const esPapel = insumo => {
+        const categoria = categoriaInsumo(insumo);
+        return categoria === 'papel' || categoria.startsWith('papel ') || ['cartulina', 'adhesivos'].includes(categoria);
+    };
+    const papeles = (catalogoCot.insumos || []).filter(esPapel);
+    const acabados = (catalogoCot.insumos || []).filter(ins => categoriaInsumo(ins).startsWith('acabado'));
+    const tintas = (catalogoCot.insumos || []).filter(ins => categoriaInsumo(ins) === 'tinta');
 
-    // Separar Tintas de los demás Acabados/Insumos
+    let opcionesTrabajo = '<option value="">Selecciona un papel del catálogo...</option>';
+    papeles.forEach(ins => {
+        opcionesTrabajo += `<option value="${ins.id_insumo}" data-precio="${ins.precio_venta}" data-tipo="${escaparCatalogo(ins.nombre)}" data-tamano="" data-idpapel="${ins.id_insumo}">
+            ${escaparCatalogo(ins.nombre)} — Q${parseFloat(ins.precio_venta).toFixed(2)}
+        </option>`;
+    });
+
     let opcionesAcabado = '<option value="">Sin acabado extra</option>';
     let opcionesTinta = '<option value="">Sin tinta extra</option>';
-    
-    if(catalogoCot.insumos) {
-        catalogoCot.insumos.forEach(ins => {
-            if(ins.categoria.toLowerCase().includes('tinta')) {
-                opcionesTinta += `<option value="${ins.id_insumo}" data-precio="${ins.precio_venta}">${ins.nombre} — Q${parseFloat(ins.precio_venta).toFixed(2)}</option>`;
-            } else {
-                opcionesAcabado += `<option value="${ins.id_insumo}" data-precio="${ins.precio_venta}">${ins.nombre} — +Q${parseFloat(ins.precio_venta).toFixed(2)}</option>`;
-            }
-        });
-    }
+    acabados.forEach(ins => {
+        opcionesAcabado += `<option value="${ins.id_insumo}" data-precio="${ins.precio_venta}">${escaparCatalogo(ins.nombre)} — +Q${parseFloat(ins.precio_venta).toFixed(2)}</option>`;
+    });
+    tintas.forEach(ins => {
+        opcionesTinta += `<option value="${ins.id_insumo}" data-precio="${ins.precio_venta}">${escaparCatalogo(ins.nombre)} — +Q${parseFloat(ins.precio_venta).toFixed(2)}</option>`;
+    });
 
     // Opciones de Máquinas
     let opcionesMaquina = '<option value="">Selecciona máquina de producción...</option>';
@@ -1190,12 +1238,8 @@ function agregarLinea() {
         <div style="display:grid;grid-template-columns:1fr;gap:10px;background:#fff;padding:10px;border-radius:6px;border:1px dashed #ccc;margin-bottom:10px;">
             <div style="padding:8px;color:#7f8c8d;font-size:12px;">El tiempo y la impresora serán definidos por Producción después de aceptar la cotización.</div>
             <div class="form-group" style="margin:0;">
-                <label style="font-size:12px; color:#c0392b; font-weight:bold;">4. Tinta Requerida</label>
+                <label style="font-size:12px; color:#c0392b; font-weight:bold;">3. Tinta Requerida</label>
                 <select id="tinta-${id}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" onchange="autocompletarPrecio(${id})">${opcionesTinta}</select>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;">Cant. Tinta</label>
-                <input type="number" id="cantTinta-${id}" min="0" step="1" placeholder="0" pattern="[0-9]*" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;" oninput="autocompletarPrecio(${id})">
             </div>
         </div>
 
@@ -1221,7 +1265,6 @@ function autocompletarPrecio(id) {
     const selectTrabajo = document.getElementById(`tt-${id}`);
     const selectAcabado = document.getElementById(`ins-${id}`);
     const selectTinta   = document.getElementById(`tinta-${id}`);
-    const inputTinta    = document.getElementById(`cantTinta-${id}`);
     const inputCantidad = document.getElementById(`cant-${id}`);
     const inputSubtotal = document.getElementById(`sub-${id}`);
     const info          = document.getElementById(`autoInfo-${id}`);
@@ -1244,10 +1287,9 @@ function autocompletarPrecio(id) {
     // 1. Costo proporcional por volumen impreso (Papel + Acabado Extra)
     const costoUnitarioTotal = (precioBase + precioAcabado) * cantidad;
 
-    // 2. Costos operacionales globales del tiraje (Horas máquina + Cantidad tinta)
+    // 2. El insumo de tinta se calcula por unidad de trabajo, igual que el acabado.
     const precioTinta = (selectTinta && selectTinta.selectedIndex > 0) ? parseFloat(selectTinta.options[selectTinta.selectedIndex].dataset.precio) || 0 : 0;
-    const cantTinta = parseInt(inputTinta.value, 10) || 0;
-    const costoTintaGlobal = precioTinta * cantTinta;
+    const costoTintaGlobal = precioTinta * cantidad;
 
     // Cálculo final aplicando sumatoria de costos de producción
     const subtotal = costoUnitarioTotal + costoTintaGlobal;
@@ -1255,16 +1297,39 @@ function autocompletarPrecio(id) {
     inputSubtotal.value = subtotal.toFixed(2);
     
     if (info) {
-        info.innerHTML = `✅ Base: Q${(precioBase*cantidad).toFixed(2)} | Extras + Tinta: Q${(precioAcabado*cantidad + costoTintaGlobal).toFixed(2)}`;
+        info.innerHTML = `Base: Q${(precioBase*cantidad).toFixed(2)} | Extras + Tinta: Q${(precioAcabado*cantidad + costoTintaGlobal).toFixed(2)}`;
     }
     recalcularTotal();
 }
 
 function recalcularTotal() {
-    let total=0;
-    document.querySelectorAll('[id^="sub-"]').forEach(i=>{ total+=parseFloat(i.value)||0; });
-    const el=document.getElementById('totalCot');
-    if (el) el.innerText=total.toFixed(2);
+    let subtotal=0;
+    document.querySelectorAll('[id^="sub-"]').forEach(i=>{ subtotal+=parseFloat(i.value)||0; });
+    actualizarResumenCotizacion(subtotal);
+}
+
+function obtenerDescuentoCotizacion() {
+    const select = document.getElementById('cotCliente');
+    const opcion = select?.options[select.selectedIndex];
+    return Math.min(100, Math.max(0, Number(opcion?.dataset.descuento || 0)));
+}
+
+function actualizarDescuentoCotizacion() {
+    recalcularTotal();
+}
+
+function actualizarResumenCotizacion(subtotal) {
+    const descuentoPorcentaje = obtenerDescuentoCotizacion();
+    const montoDescuento = subtotal * descuentoPorcentaje / 100;
+    const total = subtotal - montoDescuento;
+    const subtotalEl = document.getElementById('subtotalCot');
+    const porcentajeEl = document.getElementById('descuentoPorcentajeCot');
+    const descuentoEl = document.getElementById('montoDescuentoCot');
+    const totalEl = document.getElementById('totalCot');
+    if (subtotalEl) subtotalEl.innerText = subtotal.toFixed(2);
+    if (porcentajeEl) porcentajeEl.innerText = descuentoPorcentaje.toFixed(2);
+    if (descuentoEl) descuentoEl.innerText = montoDescuento.toFixed(2);
+    if (totalEl) totalEl.innerText = total.toFixed(2);
 }
 
 document.getElementById('formCotizacion').addEventListener('submit', async (e) => {
@@ -1302,15 +1367,11 @@ document.getElementById('formCotizacion').addEventListener('submit', async (e) =
         const cantidad = parseInt(document.getElementById(`cant-${lid}`)?.value) || 0;
         const id_acabado = document.getElementById(`ins-${lid}`)?.value ? parseInt(document.getElementById(`ins-${lid}`).value) : null;
         
-        const inTinta = document.getElementById(`cantTinta-${lid}`);
-        const consumo_estimado_tinta = inTinta ? parseFloat(inTinta.value) || 0 : 0;
-        
         const subtotal = parseFloat(document.getElementById(`sub-${lid}`)?.value) || 0;
-        if (inTinta && inTinta.value && !Number.isInteger(Number(inTinta.value))) { valido = false; return; }
-        
         if (!tipo_trabajo || cantidad < 1 || subtotal <= 0) { valido = false; return; }
         const id_maquina = puedeAsignarMaquina && document.getElementById(`maq-${lid}`)?.value ? parseInt(document.getElementById(`maq-${lid}`).value) : null;
         const id_tinta = document.getElementById(`tinta-${lid}`)?.value ? parseInt(document.getElementById(`tinta-${lid}`).value) : null;
+        const consumo_estimado_tinta = id_tinta ? cantidad : 0;
 
         detalle.push({
             tipo_trabajo,
@@ -1379,6 +1440,8 @@ async function verCotizacion(id) {
             <strong style="display:block;margin-bottom:10px;font-size:14px;">Detalle de trabajos:</strong>
             ${detalleHtml}
             <div style="text-align:right;margin-top:14px;font-size:18px;font-weight:700;color:#2c3e50;">
+                <div style="font-size:13px;font-weight:400;color:#687681;">Subtotal: Q ${parseFloat(c.subtotal_bruto ?? c.total ?? 0).toFixed(2)}</div>
+                <div style="font-size:13px;font-weight:400;color:#687681;">Descuento (${parseFloat(c.descuento_porcentaje || 0).toFixed(2)}%): -Q ${parseFloat(c.monto_descuento || 0).toFixed(2)}</div>
                 TOTAL: Q ${parseFloat(c.total).toFixed(2)}
             </div>
         `;
@@ -1400,7 +1463,7 @@ document.getElementById('btnDescargarPdf').addEventListener('click', () => {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(18);
     doc.setFont('helvetica','bold');
-    doc.text('SAI Imprenta', 14, 13);
+    doc.text('SAI WEB', 14, 13);
     doc.setFontSize(11);
     doc.setFont('helvetica','normal');
     doc.text(`COTIZACIÓN #${c.id_cotizacion}`, 14, 23);
@@ -1448,6 +1511,11 @@ document.getElementById('btnDescargarPdf').addEventListener('click', () => {
 
     // Total
     y+=4;
+    doc.setTextColor(80,80,80);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    doc.text(`Subtotal: Q ${parseFloat(c.subtotal_bruto ?? c.total ?? 0).toFixed(2)}`, 130, y+4);
+    doc.text(`Descuento (${parseFloat(c.descuento_porcentaje || 0).toFixed(2)}%): -Q ${parseFloat(c.monto_descuento || 0).toFixed(2)}`, 130, y+9);
+    y+=6;
     doc.setFillColor(39,174,96);
     doc.rect(130, y, 66, 9, 'F');
     doc.setTextColor(255,255,255);
@@ -1457,7 +1525,7 @@ document.getElementById('btnDescargarPdf').addEventListener('click', () => {
     // Pie
     doc.setTextColor(150,150,150);
     doc.setFont('helvetica','normal'); doc.setFontSize(8);
-    doc.text(`Generado por SAI Imprenta — ${new Date().toLocaleString('es-GT')}`, 14, 288);
+    doc.text(`Generado por SAI WEB — ${new Date().toLocaleString('es-GT')}`, 14, 288);
 
     doc.save(`Cotizacion_${c.id_cotizacion}_${c.nombre_cliente||'cliente'}.pdf`);
 });
@@ -1502,9 +1570,9 @@ async function actualizarProduccion() {
         renderStatsProduccion(ordenesProduccionCache);
     } catch (e) {
         const tbody = document.getElementById('tablaProduccionBody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="color:red;text-align:center;">Error al cargar</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="color:red;text-align:center;">Error al cargar</td></tr>';
         const tbody2 = document.getElementById('tablaSeguimientoBody');
-        if (tbody2) tbody2.innerHTML = '<tr><td colspan="8" style="color:red;text-align:center;">Error al cargar</td></tr>';
+        if (tbody2) tbody2.innerHTML = '<tr><td colspan="9" style="color:red;text-align:center;">Error al cargar</td></tr>';
     }
 }
 
@@ -1531,19 +1599,20 @@ function renderProduccion(lista) {
     const tbody = document.getElementById('tablaProduccionBody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay órdenes de producción.</td></tr>'; return; }
+    if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7" class="loading">No hay órdenes de producción.</td></tr>'; return; }
 
     lista.forEach(o => {
         const fechaEntrega = o.fecha_entrega_estimada ? new Date(o.fecha_entrega_estimada).toLocaleDateString('es-GT') : 'Sin fecha';
         const tiempoReal = o.tiempo_real_invertido != null ? `${o.tiempo_real_invertido} min` : '0 min';
         tbody.innerHTML += `<tr>
+            <td>#${o.id_cotizacion || '—'}</td>
             <td>${o.cliente_nombre || '—'}</td>
             <td>${o.estado_actual || '—'}</td>
             <td>${o.prioridad || 'Normal'}</td>
             <td>${fechaEntrega}</td>
             <td>${tiempoReal}</td>
             <td style="text-align:center;">
-                <button class="btn-accion btn-view" onclick="verOrdenProduccion(${o.id_orden})">👁 Ver</button>
+                <button class="btn-accion btn-view" onclick="verOrdenProduccion(${o.id_orden})">Ver</button>
             </td>
         </tr>`;
     });
@@ -1553,7 +1622,7 @@ function renderSeguimiento(lista) {
     const tbody = document.getElementById('tablaSeguimientoBody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    if (!lista.length) { tbody.innerHTML = '<tr><td colspan="8" class="loading">No hay órdenes para seguimiento.</td></tr>'; return; }
+    if (!lista.length) { tbody.innerHTML = '<tr><td colspan="9" class="loading">No hay órdenes para seguimiento.</td></tr>'; return; }
 
     lista.forEach(o => {
         const fechaEntrega = o.fecha_entrega_estimada ? new Date(o.fecha_entrega_estimada).toLocaleDateString('es-GT') : 'Sin fecha';
@@ -1561,6 +1630,7 @@ function renderSeguimiento(lista) {
         const operador = o.operador_nombre || '—';
         const tiempoProduccion = o.tiempo_estimado_horas ? `${o.tiempo_estimado_horas} h` : 'Pendiente';
         tbody.innerHTML += `<tr>
+            <td>#${o.id_cotizacion || '—'}</td>
             <td>${o.id_orden}</td>
             <td>${o.cliente_nombre || '—'}</td>
             <td>${o.estado_actual || '—'}</td>
@@ -1568,7 +1638,7 @@ function renderSeguimiento(lista) {
             <td>${operador}</td>
             <td>${tiempoProduccion}</td>
             <td>${fechaEntrega}</td>
-            <td style="text-align:center;"><button class="btn-accion btn-view" onclick="verOrdenProduccion(${o.id_orden})">👁 Ver</button></td>
+            <td style="text-align:center;"><button class="btn-accion btn-view" onclick="verOrdenProduccion(${o.id_orden})">Ver</button></td>
         </tr>`;
     });
 }
@@ -1607,7 +1677,7 @@ function renderNotificacionesProduccion(lista) {
         return;
     }
     cont.innerHTML = `
-        <div style="margin-bottom:10px;font-weight:700;color:#2c3e50;display:flex;justify-content:space-between;align-items:center;">🔔 Notificaciones <button class="btn-accion btn-delete" onclick="limpiarNotificacionesLeidas()">🧹 Limpiar leídas</button></div>
+        <div style="margin-bottom:10px;font-weight:700;color:#2c3e50;display:flex;justify-content:space-between;align-items:center;">Notificaciones <button class="btn-accion btn-delete" onclick="limpiarNotificacionesLeidas()">Limpiar leídas</button></div>
         <div style="display:grid;gap:10px;">${lista.map(n => `
             <div style="padding:12px;border-radius:8px;border:1px solid #e9ecef;background:${n.leida ? '#f5f5f5' : '#fff'};position:relative;">
                 <div style="font-size:13px;line-height:1.4;">${n.mensaje}</div>
@@ -1679,7 +1749,9 @@ async function verOrdenProduccion(id) {
         const segmentos = (o.tiempos || []).map(t => {
             const inicio = formatoFecha(t.inicio);
             const fin = t.fin ? formatoFecha(t.fin) : 'Activo';
-            return `<div style="padding:10px;border-bottom:1px solid #eee;"><strong>${t.estado}</strong> · ${t.usuario_nombre||'Usuario'}<br>${inicio} → ${fin}<br><small>${t.observaciones || ''}</small></div>`;
+            const observaciones = (t.observaciones || '').trim();
+            const eventos = observaciones ? observaciones.split('\n').filter(Boolean).map(evento => `<span style="display:block;">${evento}</span>`).join('') : '<span style="color:#7f8c8d;">Sin observaciones</span>';
+            return `<div style="padding:10px;border-bottom:1px solid #eee;"><strong>${t.estado}</strong> · ${t.usuario_nombre||'Usuario'}<br><span>Inicio: ${inicio}</span><br><span>${t.fin ? 'Fin / pausa' : 'En curso'}: ${fin}</span><br><small>${eventos}</small></div>`;
         }).join('');
         const historial = (o.historial || []).map(h => `<div style="padding:10px;border-bottom:1px solid #eee;"><strong>${h.estado_anterior || 'N/A'} → ${h.estado_nuevo}</strong><br>${formatoFecha(h.fecha_cambio)}<br><small>${h.usuario_nombre || 'Sistema'}</small></div>`).join('');
         const comparativo = o.comparativo || {};
@@ -1722,12 +1794,12 @@ async function verOrdenProduccion(id) {
                     <small style="color:#7f8c8d;">La impresora se bloqueará al pulsar Iniciar y quedará reservada hasta finalizar o cancelar.</small>
                 </div>` : ''}
                 ${puedeGestionarProduccion ? `<div style="display:flex;flex-wrap:wrap;gap:10px;">
-                    ${estado === 'Confirmado' ? `<button id="btnIniciarOrden" class="btn-accion btn-accept" disabled onclick="accionCronometro(${id}, 'iniciar')">▶️ Iniciar cronómetro</button>` : ''}
-                    ${estado === 'En producción' && tieneActivo ? `<button class="btn-accion btn-reject" onclick="accionCronometro(${id}, 'pausar')">⏸️ Pausar</button>` : ''}
-                    ${estado === 'En producción' && !tieneActivo ? `<button class="btn-accion btn-accept" onclick="accionCronometro(${id}, 'reanudar')">▶️ Reanudar</button>` : ''}
-                    ${estado === 'En producción' ? `<button class="btn-accion btn-edit" onclick="accionCronometro(${id}, 'finalizar')">✅ Finalizar</button>` : ''}
-                    ${['Confirmado', 'En producción'].includes(estado) ? `<button class="btn-accion btn-delete" onclick="cancelarOrden(${id})">✖️ Cancelar</button>` : ''}
-                </div>` : (rolID === 2 && estado === 'Terminado' ? `<div style="display:flex;gap:10px;"><button class="btn-accion btn-accept" onclick="accionOrdenEntregado(${id})">📦 Marcar entregado</button></div>` : '')}
+                    ${estado === 'Confirmado' ? `<button id="btnIniciarOrden" class="btn-accion btn-accept" disabled onclick="accionCronometro(${id}, 'iniciar')">Iniciar cronómetro</button>` : ''}
+                    ${estado === 'En producción' && tieneActivo ? `<button class="btn-accion btn-reject" onclick="accionCronometro(${id}, 'pausar')">Pausar</button>` : ''}
+                    ${estado === 'En producción' && !tieneActivo ? `<button class="btn-accion btn-accept" onclick="accionCronometro(${id}, 'reanudar')">Reanudar</button>` : ''}
+                    ${estado === 'En producción' ? `<button class="btn-accion btn-edit" onclick="accionCronometro(${id}, 'finalizar')">Finalizar</button>` : ''}
+                    ${['Confirmado', 'En producción'].includes(estado) ? `<button class="btn-accion btn-delete" onclick="cancelarOrden(${id})">Cancelar</button>` : ''}
+                </div>` : (rolID === 2 && estado === 'Terminado' ? `<div style="display:flex;gap:10px;"><button class="btn-accion btn-accept" onclick="accionOrdenEntregado(${id})">Marcar entregado</button></div>` : '')}
                 <div style="padding:14px;background:#f8f9fa;border-radius:10px;border:1px solid #e1e1e1;display:flex;justify-content:space-between;align-items:center;">
                     <div><strong>Tiempo estimado vs real</strong></div>
                     <div id="tiempoRestanteProduccion" style="font-weight:700;color:#2c3e50;">Cargando...</div>
@@ -1807,6 +1879,16 @@ async function accionCronometro(id, accion) {
             return;
         }
         if (accion === 'iniciar' || accion === 'reanudar' || accion === 'finalizar') {
+            if (accion === 'reanudar') {
+                mostrarModalInput('Motivo de reanudación', 'Explica por qué se reanuda la impresión...', async (motivo) => {
+                    if (!motivo) {
+                        mostrarNotificacion('Debes escribir un motivo para reanudar', 'warning');
+                        return;
+                    }
+                    await enviarAccionCronometro(id, accion, { motivo });
+                }, () => mostrarNotificacion('Reanudación cancelada', 'info'));
+                return;
+            }
             const endpoint = `${API}/ordenes-produccion/${id}/cronometro/${accion}`;
             const body = accion === 'iniciar'
                 ? { observaciones: 'Inicio de producción', id_maquina: document.getElementById('maquinaOrdenSelect')?.value, horas: document.getElementById('tiempoEstimadoOrden')?.value }
@@ -1821,6 +1903,22 @@ async function accionCronometro(id, accion) {
                 mostrarNotificacion('Error: ' + data.mensaje, 'error');
             }
             return;
+        }
+    } catch (e) {
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+}
+
+async function enviarAccionCronometro(id, accion, body) {
+    try {
+        const res = await fetch(`${API}/ordenes-produccion/${id}/cronometro/${accion}`, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+        const data = await res.json();
+        if (data.exito) {
+            mostrarNotificacion('Cronómetro reanudado y notificación enviada', 'success');
+            actualizarProduccion();
+            verOrdenProduccion(id);
+        } else {
+            mostrarNotificacion('Error: ' + data.mensaje, 'error');
         }
     } catch (e) {
         mostrarNotificacion('Error de conexión', 'error');
@@ -1867,12 +1965,18 @@ async function guardarTiempoEstimado(id) {
 
 async function cancelarOrden(id) {
         mostrarConfirmacionWeb('¿Cancelar esta orden y liberar la impresora?', async () => {
-            try {
-        const res = await fetch(`${API}/ordenes-produccion/${id}/cancelar`, { method: 'POST', headers: headers() });
+            mostrarModalInput('Motivo de detención', 'Describe por qué se detiene o cancela la impresión...', async (motivo) => {
+                if (!motivo) {
+                    mostrarNotificacion('Debes escribir un motivo para detener la impresión', 'warning');
+                    return;
+                }
+                try {
+        const res = await fetch(`${API}/ordenes-produccion/${id}/cancelar`, { method: 'POST', headers: headers(), body: JSON.stringify({ motivo }) });
         const data = await res.json();
         if (data.exito) { mostrarNotificacion(data.mensaje, 'success'); cerrarModalDetalleProduccion(); actualizarProduccion(); }
         else mostrarNotificacion('Error: ' + data.mensaje, 'error');
-            } catch (e) { mostrarNotificacion('Error de conexión', 'error'); }
+                } catch (e) { mostrarNotificacion('Error de conexión', 'error'); }
+            }, () => mostrarNotificacion('Detención cancelada', 'info'));
         });
 }
 
