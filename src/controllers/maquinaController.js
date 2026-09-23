@@ -6,20 +6,20 @@ const listarMaquinas = async (req, res) => {
 };
 
 const crearMaquina = async (req, res) => {
-    const { nombre, tipo, precio_por_hora } = req.body;
-    if (!nombre || !tipo || precio_por_hora === undefined || Number(precio_por_hora) < 0) {
-        return res.status(400).json({ exito: false, mensaje: 'Nombre, tipo y precio por hora son obligatorios' });
+    const { nombre, tipo } = req.body;
+    if (!nombre || !tipo) {
+        return res.status(400).json({ exito: false, mensaje: 'Nombre y tipo son obligatorios' });
     }
     try {
-        const id_maquina = await maquinaModel.crearMaquina(nombre, tipo, Number(precio_por_hora));
+        const id_maquina = await maquinaModel.crearMaquina(nombre, tipo);
         res.status(201).json({ exito: true, id_maquina, mensaje: 'Impresora creada correctamente' });
     } catch (error) { res.status(500).json({ exito: false, mensaje: 'Error al crear impresora' }); }
 };
 
 const actualizarMaquina = async (req, res) => {
-    const { nombre, tipo, precio_por_hora } = req.body;
+    const { nombre, tipo } = req.body;
     try {
-        const actualizado = await maquinaModel.actualizarMaquina(req.params.id, nombre, tipo, Number(precio_por_hora));
+        const actualizado = await maquinaModel.actualizarMaquina(req.params.id, nombre, tipo);
         res.status(actualizado ? 200 : 404).json({ exito: actualizado, mensaje: actualizado ? 'Impresora actualizada' : 'Impresora no encontrada' });
     } catch (error) { res.status(500).json({ exito: false, mensaje: 'Error al actualizar impresora' }); }
 };

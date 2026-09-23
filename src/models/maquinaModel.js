@@ -5,18 +5,18 @@ const listarMaquinas = async () => {
     return rows;
 };
 
-const crearMaquina = async (nombre, tipo, precio_por_hora) => {
+const crearMaquina = async (nombre, tipo) => {
     const [result] = await db.query(
-        `INSERT INTO maquinas (nombre, tipo, estado, precio_por_hora) VALUES (?, ?, 'Disponible', ?)`,
-        [nombre, tipo, precio_por_hora]
+        `INSERT INTO maquinas (nombre, tipo, estado) VALUES (?, ?, 'Disponible')`,
+        [nombre, tipo]
     );
     return result.insertId;
 };
 
-const actualizarMaquina = async (id, nombre, tipo, precio_por_hora) => {
+const actualizarMaquina = async (id, nombre, tipo) => {
     const [result] = await db.query(
-        `UPDATE maquinas SET nombre = ?, tipo = ?, precio_por_hora = ? WHERE id_maquina = ?`,
-        [nombre, tipo, precio_por_hora, id]
+        `UPDATE maquinas SET nombre = ?, tipo = ? WHERE id_maquina = ?`,
+        [nombre, tipo, id]
     );
     return result.affectedRows > 0;
 };

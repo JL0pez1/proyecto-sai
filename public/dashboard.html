@@ -177,7 +177,7 @@
 /* Form de impresoras (dentro del modal) */
 .admin-form {
     display: grid;
-    grid-template-columns: 1.2fr 1fr 1fr;
+    grid-template-columns: 1.2fr 1fr;
     gap: 8px; margin-bottom: 12px; padding: 12px;
     background: #f7f9fb; border: 1px solid #eef0f2;
     border-radius: 10px; align-items: center;
@@ -1194,18 +1194,17 @@ async function abrirGestionImpresoras() {
     overlay.className = 'modal-overlay';
     overlay.style.display = 'flex';
     overlay.innerHTML = `<div class="modal-content wide admin-modal admin-modal-compact">
-        <button type="button" class="btn-modal-cerrar" title="Cerrar">×</button>
-        <div class="admin-modal-header"><div><p class="admin-eyebrow">Administración</p><h3>Gestión de impresoras</h3><p class="admin-description">Configura las máquinas disponibles y su tarifa por hora.</p></div></div>
-        <section class="admin-section"><div class="admin-section-header"><div><h4>Impresoras registradas</h4><p>Estado y tarifa de operación</p></div><span class="admin-count" id="contadorAdminMaquinas"></span></div>
-        <form id="formAdminMaquina" class="admin-form">
-            <input type="hidden" id="adminMaquinaId">
-            <input id="adminMaquinaNombre" placeholder="Nombre" required>
-            <input id="adminMaquinaTipo" placeholder="Tipo" required>
-            <input id="adminMaquinaPrecio" type="number" min="0" step="0.01" placeholder="Precio por hora" required>
-            <div class="admin-form-actions"><button class="btn-primary" type="submit">Guardar impresora</button><button class="btn-secondary" type="button" onclick="limpiarFormAdminMaquina()">Limpiar</button></div>
-        </form>
-        <div class="admin-list-toolbar"><label for="buscarAdminMaquinas">Buscar impresora</label><input id="buscarAdminMaquinas" class="admin-search" type="search" placeholder="Nombre o tipo" oninput="renderCatalogosAdmin()"></div><div id="listaAdminMaquinas" class="admin-list"></div></section>
-    </div>`;
+    <button type="button" class="btn-modal-cerrar" title="Cerrar">×</button>
+    <div class="admin-modal-header"><div><p class="admin-eyebrow">Administración</p><h3>Gestión de impresoras</h3><p class="admin-description">Configura las máquinas disponibles para producción.</p></div></div>
+    <section class="admin-section"><div class="admin-section-header"><div><h4>Impresoras registradas</h4><p>Estado de operación</p></div><span class="admin-count" id="contadorAdminMaquinas"></span></div>
+    <form id="formAdminMaquina" class="admin-form">
+        <input type="hidden" id="adminMaquinaId">
+        <input id="adminMaquinaNombre" placeholder="Nombre" required>
+        <input id="adminMaquinaTipo" placeholder="Tipo" required>
+        <div class="admin-form-actions"><button class="btn-primary" type="submit">Guardar impresora</button><button class="btn-secondary" type="button" onclick="limpiarFormAdminMaquina()">Limpiar</button></div>
+    </form>
+    <div class="admin-list-toolbar"><label for="buscarAdminMaquinas">Buscar impresora</label><input id="buscarAdminMaquinas" class="admin-search" type="search" placeholder="Nombre o tipo" oninput="renderCatalogosAdmin()"></div><div id="listaAdminMaquinas" class="admin-list"></div></section>
+</div>`;
     document.body.appendChild(overlay);
     overlay.querySelector('.btn-modal-cerrar').onclick = () => overlay.remove();
     overlay.onclick = event => { if (event.target === overlay) overlay.remove(); };
@@ -1239,7 +1238,7 @@ function renderCatalogosAdmin() {
     if (contadorInsumos) contadorInsumos.textContent = `${insumosFiltrados.length} de ${adminInsumos.length}`;
     if (contadorMaquinas) contadorMaquinas.textContent = `${maquinasFiltradas.length} de ${adminMaquinas.length}`;
     if (insumos) insumos.innerHTML = insumosFiltrados.map(i => `<div class="admin-list-item"><div><strong>${escaparCatalogo(i.nombre)}</strong><span>${escaparCatalogo(i.categoria)}</span></div><div class="admin-list-meta"><span>Compra Q${i.costo_unitario}</span><span>Venta Q${i.precio_venta}</span><div class="admin-list-actions"><button class="btn-accion btn-edit" onclick="editarAdminInsumo(${i.id_insumo})">Editar</button><button class="btn-accion btn-delete" onclick="eliminarAdminInsumo(${i.id_insumo})">Eliminar</button></div></div></div>`).join('') || '<p class="admin-empty">No hay insumos que coincidan con la búsqueda.</p>';
-    if (maquinas) maquinas.innerHTML = maquinasFiltradas.map(m => `<div class="admin-list-item"><div><strong>${escaparCatalogo(m.nombre)}</strong><span>${escaparCatalogo(m.tipo)}</span></div><div class="admin-list-meta"><span class="admin-status ${m.estado === 'Mantenimiento' ? 'is-warning' : 'is-ready'}">${m.estado}</span><span>Q${m.precio_por_hora}/h</span><div class="admin-list-actions"><button class="btn-accion btn-edit" onclick="editarAdminMaquina(${m.id_maquina})">Editar</button>${m.estado === 'Mantenimiento' ? `<button class="btn-accion btn-accept" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Disponible')">Habilitar</button>` : `<button class="btn-accion btn-delete" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Mantenimiento')">Deshabilitar</button>`}</div></div></div>`).join('') || '<p class="admin-empty">No hay impresoras que coincidan con la búsqueda.</p>';
+if (maquinas) maquinas.innerHTML = maquinasFiltradas.map(m => `<div class="admin-list-item"><div><strong>${escaparCatalogo(m.nombre)}</strong><span>${escaparCatalogo(m.tipo)}</span></div><div class="admin-list-meta"><span class="admin-status ${m.estado === 'Mantenimiento' ? 'is-warning' : 'is-ready'}">${m.estado}</span><div class="admin-list-actions"><button class="btn-accion btn-edit" onclick="editarAdminMaquina(${m.id_maquina})">Editar</button>${m.estado === 'Mantenimiento' ? `<button class="btn-accion btn-accept" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Disponible')">Habilitar</button>` : `<button class="btn-accion btn-delete" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Mantenimiento')">Deshabilitar</button>`}</div></div></div>`).join('') || '<p class="admin-empty">No hay impresoras que coincidan con la búsqueda.</p>';if (maquinas) maquinas.innerHTML = maquinasFiltradas.map(m => `<div class="admin-list-item"><div><strong>${escaparCatalogo(m.nombre)}</strong><span>${escaparCatalogo(m.tipo)}</span></div><div class="admin-list-meta"><span class="admin-status ${m.estado === 'Mantenimiento' ? 'is-warning' : 'is-ready'}">${m.estado}</span><div class="admin-list-actions"><button class="btn-accion btn-edit" onclick="editarAdminMaquina(${m.id_maquina})">Editar</button>${m.estado === 'Mantenimiento' ? `<button class="btn-accion btn-accept" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Disponible')">Habilitar</button>` : `<button class="btn-accion btn-delete" onclick="cambiarEstadoAdminMaquina(${m.id_maquina},'Mantenimiento')">Deshabilitar</button>`}</div></div></div>`).join('') || '<p class="admin-empty">No hay impresoras que coincidan con la búsqueda.</p>';    
 }
 
 function abrirModalAdminInsumo(id = null) {
@@ -1279,7 +1278,13 @@ function cerrarModalAdminInsumo() { document.getElementById('modalAdminInsumo')?
 function limpiarFormAdminInsumo() { cerrarModalAdminInsumo(); }
 function limpiarFormAdminMaquina() { document.getElementById('formAdminMaquina').reset(); document.getElementById('adminMaquinaId').value = ''; }
 function editarAdminInsumo(id) { abrirModalAdminInsumo(id); }
-function editarAdminMaquina(id) { const m = adminMaquinas.find(item => item.id_maquina === id); if (!m) return; document.getElementById('adminMaquinaId').value=id; document.getElementById('adminMaquinaNombre').value=m.nombre; document.getElementById('adminMaquinaTipo').value=m.tipo; document.getElementById('adminMaquinaPrecio').value=m.precio_por_hora; }
+function editarAdminMaquina(id) {
+    const m = adminMaquinas.find(item => item.id_maquina === id);
+    if (!m) return;
+    document.getElementById('adminMaquinaId').value = id;
+    document.getElementById('adminMaquinaNombre').value = m.nombre;
+    document.getElementById('adminMaquinaTipo').value = m.tipo;
+}
 
 async function guardarAdminInsumo(event) {
     event.preventDefault(); const id=document.getElementById('adminInsumoId').value;
@@ -1295,11 +1300,28 @@ async function eliminarAdminInsumo(id) {
     });
 }
 async function guardarAdminMaquina(event) {
-    event.preventDefault(); const id=document.getElementById('adminMaquinaId').value;
-    const body={nombre:document.getElementById('adminMaquinaNombre').value,tipo:document.getElementById('adminMaquinaTipo').value,precio_por_hora:Number(document.getElementById('adminMaquinaPrecio').value)};
-    const res=await fetch(`${API}/maquinas${id?`/${id}`:''}`,{method:id?'PUT':'POST',headers:headers(),body:JSON.stringify(body)});const data=await res.json();
-    if(data.exito){mostrarNotificacion('Impresora guardada','success');limpiarFormAdminMaquina();cargarCatalogosAdmin();cargarCatalogo();}else mostrarNotificacion(data.mensaje,'error');
+    event.preventDefault();
+    const id = document.getElementById('adminMaquinaId').value;
+    const body = {
+        nombre: document.getElementById('adminMaquinaNombre').value,
+        tipo:   document.getElementById('adminMaquinaTipo').value
+    };
+    const res  = await fetch(`${API}/maquinas${id ? `/${id}` : ''}`, {
+        method: id ? 'PUT' : 'POST',
+        headers: headers(),
+        body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.exito) {
+        mostrarNotificacion('Impresora guardada', 'success');
+        limpiarFormAdminMaquina();
+        cargarCatalogosAdmin();
+        cargarCatalogo();
+    } else {
+        mostrarNotificacion(data.mensaje, 'error');
+    }
 }
+
 async function cambiarEstadoAdminMaquina(id, estado) {
     const accion = estado === 'Mantenimiento' ? 'deshabilitar' : 'habilitar';
     mostrarConfirmacionWeb(`¿Deseas ${accion} esta impresora?`, async () => {
@@ -1377,13 +1399,7 @@ function agregarLinea() {
     });
 
     // Opciones de Máquinas
-    let opcionesMaquina = '<option value="">Selecciona máquina de producción...</option>';
-    if(catalogoCot.maquinas) {
-        catalogoCot.maquinas.forEach(maq => {
-            const precioHora = maq.precio_por_hora || 0;
-            opcionesMaquina += `<option value="${maq.id_maquina}" data-precio="${precioHora}">${maq.nombre} (Q${parseFloat(precioHora).toFixed(2)}/h)</option>`;
-        });
-    }
+ 
 
     const div = document.createElement('div');
     div.id='ln-'+id;
