@@ -673,15 +673,7 @@ async function cargarVista(modulo) {
                 <h3>Lista de Clientes</h3>
                 <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="abrirModalCliente()">+ Nuevo Cliente</button>
             </div>
-            <div class="filtros-row">
-                <input type="text" id="filtroCliente" placeholder="Buscar nombre o NIT..." oninput="filtrarClientes()" style="flex:1;min-width:200px;">
-                <select id="filtroTipoCliente" onchange="filtrarClientes()">
-                    <option value="">Todos los tipos</option>
-                    <option value="Regular">Regular</option>
-                    <option value="Frecuente">Frecuente</option>
-                    <option value="Preferencial">Preferencial</option>
-                    <option value="VIP">VIP</option>
-                </select>
+           
             </div>
             <div class="cards-row" id="statsClientes"></div>
             <table class="tabla-sai">
@@ -774,19 +766,34 @@ async function cargarVista(modulo) {
                 <section class="reporte-panel"><h4>Indicadores de producción</h4><canvas id="graficoProduccion"></canvas></section>
             </div>`;
         await cargarReporte();
-    } else if (modulo === 'seguimientoImpresiones') {
+   } else if (modulo === 'seguimientoImpresiones') {
         titulo.innerText = 'Seguimiento de impresiones';
         contenedor.innerHTML = `
             <div class="modulo-header">
                 <h3>Seguimiento de impresiones</h3>
             </div>
             <div class="cards-row" id="statsSeguimiento"></div>
+            
+            <!-- NUEVA BARRA DE BÚSQUEDA Y FILTRO -->
+            <div class="filtros-row">
+                <input type="text" id="filtroOrdenes" placeholder="Buscar por # cotización, orden o cliente..." oninput="filtrarOrdenes()" style="flex:1;min-width:220px;">
+                <select id="filtroEstadoOrden" onchange="filtrarOrdenes()">
+                    <option value="">Todos los estados</option>
+                    <option value="Confirmado">Confirmado</option>
+                    <option value="En producción">En producción</option>
+                    <option value="Terminado">Terminado</option>
+                    <option value="Entregado">Entregado</option>
+                </select>
+            </div>
+            <!-- FIN NUEVA BARRA -->
+
             <table class="tabla-sai">
                 <thead><tr><th># Cotización</th><th>Orden</th><th>Cliente</th><th>Estado</th><th>Máquina</th><th>Operador</th><th>Tiempo Producción</th><th>Entrega</th><th style="text-align:center;">Ver</th></tr></thead>
                 <tbody id="tablaSeguimientoBody"><tr><td colspan="9" class="loading">Cargando...</td></tr></tbody>
             </table><div id="notificacionesProduccion" style="margin-top:20px;"></div>`;
         await actualizarProduccion();
         await cargarNotificacionesProduccion();
+    
     } else if (modulo === 'insumos') {
         titulo.innerText = 'Gestión de Insumos';
         contenedor.innerHTML = '<p>Próximamente: Módulo de Inventario e Insumos</p>';
